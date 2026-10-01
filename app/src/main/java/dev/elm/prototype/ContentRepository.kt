@@ -217,7 +217,7 @@ object ContentPackParser {
         require(ids.size == ids.toSet().size) { "$where.$field: duplicate ID" }
         return ids
     }
-    private fun canonical(value: Any?): String = when (value) {
+    internal fun canonical(value: Any?): String = when (value) {
         is JSONObject -> value.keys().asSequence().toList().sorted()
             .joinToString(",", "{", "}") { key -> JSONObject.quote(key) + ":" + canonical(value.opt(key)) }
         is JSONArray -> (0 until value.length()).joinToString(",", "[", "]") { canonical(value.opt(it)) }
@@ -229,6 +229,7 @@ object ContentPackParser {
 
 class ContentRepository(private val context: Context) {
     private val activeFile = File(context.filesDir, "active-pack.json")
+    private val ledgerFile = File(context.filesDir, "content-identity-ledger.json")
     fun load(): ContentPack {
         val bundled = ContentPackParser.parse(readBounded(context.assets.open("fixture-pack.json")))
         if (!activeFile.exists()) return bundled
@@ -242,26 +243,71 @@ class ContentRepository(private val context: Context) {
     }
     fun importBytes(bytes: ByteArray, current: ContentPack): ContentPack {
         val candidate = ContentPackParser.parse(bytes)
-        if (candidate.courseId == current.courseId) {
-            require(candidate.contentVersion >= current.contentVersion) { "Older content version" }
-            if (candidate.contentVersion == current.contentVersion) {
-                require(candidate.canonicalJson == current.canonicalJson) {
-                    "Content changed without a new content version"
-                }
+        val ledger = if (ledgerFile.exists()) JSONObject(ledgerFile.readText()) else JSONObject()
+        val known = identities(current)
+        known.forEach { (key, fingerprint) ->
+            if (!ledger.has(key)) ledger.put(key, fingerprint)
+        }
+        val proposed = identities(candidate)
+        val packKey = "${candidate.courseId}/pack/v${candidate.contentVersion}"
+        val latest = ledger.keys().asSequence().mapNotNull { key ->
+            if (key.startsWith("${candidate.courseId}/pack/v"))
+                key.substringAfterLast('v').toIntOrNull() else null
+        }.maxOrNull() ?: 0
+        require(candidate.contentVersion >= latest || ledger.optString(packKey) == proposed[packKey]) {
+            "Older unrecognized content version for this course"
+        }
+        proposed.forEach { (key, fingerprint) ->
+            require(!ledger.has(key) || ledger.getString(key) == fingerprint) {
+                "Immutable content identity changed: $key"
+            }
+            ledger.put(key, fingerprint)
+        }
+        writeAtomic(ledgerFile, ledger.toString().toByteArray(Charsets.UTF_8))
+        writeAtomic(activeFile, bytes)
+        return candidate
+    }
+    private fun identities(pack: ContentPack): Map<String, String> {
+        val root = JSONObject(pack.canonicalJson)
+        val prefix = pack.courseId
+        val result = linkedMapOf("$prefix/pack/v${pack.contentVersion}" to pack.canonicalJson)
+        fun addEntries(field: String, key: (JSONObject) -> String) {
+            val array = root.getJSONArray(field)
+            for (index in 0 until array.length()) {
+                val item = array.getJSONObject(index)
+                result["$prefix/${key(item)}"] = ContentPackParser.canonical(item)
             }
         }
-        val oldLessons = current.lessons.associateBy { it.id }
-        candidate.lessons.forEach { lesson ->
-            val old = oldLessons[lesson.id]
-            if (old != null && old.version == lesson.version) {
-                require(old == lesson) { "Lesson ${lesson.id} changed without a new version" }
+        addEntries("recordings") { "recording/${it.getString("id")}" }
+        addEntries("segments") { "segment/${it.getString("id")}" }
+        val lessons = root.getJSONArray("lessons")
+        for (index in 0 until lessons.length()) {
+            val lesson = lessons.getJSONObject(index)
+            val lessonId = lesson.getString("id")
+            val version = lesson.getInt("version")
+            val material = JSONObject(lesson.toString())
+            material.remove("state")
+            material.remove("reviews")
+            val materialQuestions = material.getJSONArray("questions")
+            for (qIndex in 0 until materialQuestions.length())
+                materialQuestions.getJSONObject(qIndex).remove("reviews")
+            result["$prefix/lesson/$lessonId/v$version"] = ContentPackParser.canonical(material)
+            val questions = lesson.getJSONArray("questions")
+            for (qIndex in 0 until questions.length()) {
+                val question = questions.getJSONObject(qIndex)
+                val questionMaterial = JSONObject(question.toString())
+                questionMaterial.remove("reviews")
+                result["$prefix/question/$lessonId/${question.getString("id")}/v${question.getInt("version")}"] =
+                    ContentPackParser.canonical(questionMaterial)
             }
         }
-        val atomic = AtomicFile(activeFile)
+        return result
+    }
+    private fun writeAtomic(file: File, bytes: ByteArray) {
+        val atomic = AtomicFile(file)
         val output = atomic.startWrite()
         try { output.write(bytes); atomic.finishWrite(output) }
         catch (e: Exception) { atomic.failWrite(output); throw e }
-        return candidate
     }
     private fun readBounded(input: InputStream): ByteArray = input.use {
         val out = ByteArrayOutputStream()

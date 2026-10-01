@@ -8,6 +8,24 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class AudioResumeStoreTest {
+    @Test fun overlappingRecordingIdsDoNotShareSelectionOrPosition() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val prefs = context.getSharedPreferences("audio-course-scope-test", 0)
+        prefs.edit().clear().commit()
+        val store = AudioResumeStore(prefs)
+        store.chooseDocument("content://local/first", "controls-course:tone")
+        val firstKey = store.key(AudioSource.Document, "content://local/first", false,
+            "controls-course:tone-all")
+        val secondKey = store.key(AudioSource.Document, "content://local/first", false,
+            "second-course:tone-all")
+        store.save(firstKey, 4200)
+        assertNull(store.documentUri("second-course:tone"))
+        assertEquals(AudioSource.Tone, store.selected(false, "second-course:tone"))
+        assertEquals(0, store.position(secondKey, ""))
+        assertEquals(4200, store.position(firstKey, ""))
+        prefs.edit().clear().commit()
+    }
+
     @Test fun explicitSelectionAndPositionsSurviveStoreRecreation() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val prefs = context.getSharedPreferences("audio-resume-test", 0)

@@ -26,10 +26,13 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
     val store = remember { AudioResumeStore(prefs) }
     val segment = pack.segments.getValue(lesson.segmentRef)
     val recording = pack.recordings.getValue(segment.recordingId)
+    val recordingKey = "${pack.courseId}:${recording.id}"
     val representative = remember { File(context.filesDir, "representative.mp3") }
-    var imported by remember(recording.id) { mutableStateOf(store.documentUri(recording.id)) }
-    var source by remember(recording.id) { mutableStateOf(store.selected(representative.isFile, recording.id)) }
-    var full by remember(recording.id) { mutableStateOf(prefs.getBoolean("full-recording-${recording.id}", false)) }
+    var imported by remember(recordingKey) { mutableStateOf(store.documentUri(recordingKey)) }
+    var source by remember(recordingKey) { mutableStateOf(store.selected(representative.isFile, recordingKey)) }
+    var full by remember(recordingKey) { mutableStateOf(prefs.getBoolean("full-recording-$recordingKey",
+        if (pack.courseId == "controls-course") prefs.getBoolean("full-recording-${recording.id}", false)
+        else false)) }
     var revision by remember { mutableIntStateOf(0) }
     var loadedKey by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -46,7 +49,7 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
         if (uri != null) {
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                store.chooseDocument(uri.toString(), recording.id)
+                store.chooseDocument(uri.toString(), recordingKey)
                 imported = uri.toString()
                 source = AudioSource.Document
                 revision++
@@ -67,7 +70,7 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
         AudioSource.Document -> imported?.let(Uri::parse)
         AudioSource.Representative -> if (representative.isFile) Uri.fromFile(representative) else null
     }
-    LaunchedEffect(source, imported, full, revision, lesson.segmentRef) {
+    LaunchedEffect(recordingKey, source, imported, full, revision, lesson.segmentRef) {
         store.save(loadedKey, player.currentPosition)
         player.pause()
         val accessible = try {
@@ -93,15 +96,19 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
                 if (!full) setClippingConfiguration(MediaItem.ClippingConfiguration.Builder()
                     .setStartPositionMs(start).setEndPositionMs(end).build())
             }.build()
-            val scope = if (full) recording.id else lesson.segmentRef
+            val scope = "${pack.courseId}:${if (full) recording.id else lesson.segmentRef}"
             val key = store.key(source, uri.toString(), full, scope)
-            val resume = store.position(key, uri.toString() + ":" + full, store.key(source, uri.toString(), full))
+            val resume = store.position(key,
+                if (pack.courseId == "controls-course") uri.toString() + ":" + full else "",
+                if (pack.courseId == "controls-course")
+                    store.key(source, uri.toString(), full, if (full) recording.id else lesson.segmentRef)
+                else null)
             player.setMediaItem(media)
             player.prepare()
             player.seekTo(resume)
             loadedKey = key
-            store.select(source, recording.id)
-            prefs.edit().putBoolean("full-recording-${recording.id}", full).commit()
+            store.select(source, recordingKey)
+            prefs.edit().putBoolean("full-recording-$recordingKey", full).commit()
             error = null
         }
     }

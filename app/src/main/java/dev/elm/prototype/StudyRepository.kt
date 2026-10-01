@@ -33,35 +33,39 @@ fun streakStats(days: List<StudyDayCredit>, today: LocalDate): StreakStats {
 class StudyRepository(private val db: LearningDatabase, private val dao: LearningDao,
     private val clock: Clock, private val zone: ZoneId) {
     /** Every question must have saved feedback in this session; score is irrelevant to credit. */
-    suspend fun completeLesson(lesson: PackLesson, sessionId: String): Boolean = db.withTransaction {
-        val events = dao.sessionAnswers(sessionId).filter { it.kind == "lesson" &&
+    suspend fun completeLesson(lesson: PackLesson, sessionId: String,
+        courseId: String = "controls-course"): Boolean = db.withTransaction {
+        val events = dao.sessionAnswers(sessionId, courseId).filter { it.kind == "lesson" &&
             it.lessonId == lesson.id }
         require(lesson.questions.all { question -> events.any {
             it.questionId == question.id && it.questionVersion == question.version
         } }) { "Lesson feedback is incomplete" }
         val now = clock.instant()
         val day = studyDay(now, zone)
-        dao.insertLessonCompletion(LessonCompletion("${lesson.id}:v${lesson.version}", lesson.id,
-            lesson.version, now.toEpochMilli(), day, zone.id, sessionId))
-        val inserted = dao.insertStudySession(StudySession("lesson:$sessionId", "lesson",
-            "${lesson.id}:v${lesson.version}", now.toEpochMilli(), day, zone.id)) != -1L
+        dao.insertLessonCompletion(LessonCompletion("$courseId:${lesson.id}:v${lesson.version}", lesson.id,
+            lesson.version, now.toEpochMilli(), day, zone.id, sessionId, courseId))
+        val inserted = dao.insertStudySession(StudySession("lesson:$courseId:$sessionId", "lesson",
+            "$courseId:${lesson.id}:v${lesson.version}", now.toEpochMilli(), day, zone.id)) != -1L
         if (inserted) dao.insertStudyDayCredit(StudyDayCredit(day, now.toEpochMilli(), zone.id))
         inserted
     }
 
     /** Only a finished, nonempty due batch earns a study session. Assisted answers still count. */
-    suspend fun completeDueReviewBatch(dueItems: List<ReviewState>, sessionId: String): Boolean =
+    suspend fun completeDueReviewBatch(dueItems: List<ReviewState>, sessionId: String,
+        courseId: String = "controls-course"): Boolean =
         db.withTransaction {
             require(dueItems.isNotEmpty()) { "No due questions in this batch" }
-            val events = dao.sessionAnswers(sessionId).filter { it.kind == "review" }
+            require(dueItems.all { it.courseId == courseId })
+            val events = dao.sessionAnswers(sessionId, courseId).filter { it.kind == "review" }
             require(dueItems.all { state -> events.any {
                 it.lessonId == state.lessonId && it.questionId == state.questionId &&
                     it.questionVersion == state.questionVersion
             } }) { "Review feedback is incomplete" }
             val now = clock.instant()
             val day = studyDay(now, zone)
-            val inserted = dao.insertStudySession(StudySession("review:$sessionId", "review",
-                dueItems.joinToString(",") { it.conceptId }, now.toEpochMilli(), day, zone.id)) != -1L
+            val inserted = dao.insertStudySession(StudySession("review:$courseId:$sessionId", "review",
+                "$courseId:" + dueItems.joinToString(",") { it.conceptId },
+                now.toEpochMilli(), day, zone.id)) != -1L
             if (inserted) dao.insertStudyDayCredit(StudyDayCredit(day, now.toEpochMilli(), zone.id))
             inserted
         }
