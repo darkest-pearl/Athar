@@ -12,3 +12,11 @@ Audio sources: 12s neutral tone in assets, read-only document URI permission, or
 Guest storage has no backup/sync; allowBackup=false. App removal/data clear removes progress. Future repositories can synchronize approved packs and per-user events without making UI depend on a network. Download, bookmark, concept review state and daily-study/streak tables remain milestone 2; content/publication metadata remains independent of presentation.
 
 Production work still requires reviewed content, a real Tigrinya localization, audio focus/interruption checks, scoped publishing/auth rules if added, migration/backup design and prelaunch Sheikh review.
+
+## Milestone 2 audio selection and timeline
+
+The active source is explicitly Tone, Document, or Representative. Selecting a document through Android OpenDocument takes a persisted read grant and selects that exact URI. The private representative file is a deliberate development option; its presence cannot override a selected document. If the active URI is missing or access is revoked, the player clears media and asks for reselection without falling back. No broad storage permission is requested.
+
+Resume keys include source kind, URI identity, and mode (full or technical range). Switching saves the old key before loading the next, and positions survive normal process restart. The prototype's old single-offset preference is read only when its exact media key matches. Media3 clipping presents a segment-relative player timeline: for a segment with source start `S`, full-recording source time is `S + playerPosition`; in full mode source time equals `playerPosition`. The current development technical range starts at 0 ms and ends at 30,000 ms or the file's earlier end. Its boundaries are unreviewed and are not teaching segments.
+
+Playback remains foreground-only; backgrounding saves position and pauses. This test covered emulator decoding and positions, not audible quality, headphones, or interruptions on physical hardware.

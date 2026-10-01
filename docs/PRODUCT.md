@@ -7,6 +7,6 @@ Milestone 1 acceptance: open a course and lesson, play local audio, answer a sma
 
 Milestone 2: approved small content pack, bookmarks, durable concept review, meaningful study days, streaks with injectable clock, download state and audio restoration. These are not all implemented in milestone 1.
 
-Curriculum sequence is proposed, not decided. Nawaqid al-Islam is an intake candidate, not automatically the beginner course. Confirm exact al-Sa‘di book before assigning Bab al-Taharah. No public package, final visual branding, monetization, account service or remote repository chosen.
+Curriculum sequence is proposed, not decided. Nawaqid al-Islam is an intake candidate, not automatically the beginner course. Confirm exact al-Sa‘di book before assigning Bab al-Taharah. No public package, final visual branding, monetization, or account service chosen. The source repository is https://github.com/darkest-pearl/Athar.
 
 Pilot acceptance needs Tigrinya-speaking learners, enlarged text, small/large phones, TalkBack and source review. No claims of learning efficacy from demo completion.

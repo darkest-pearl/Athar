@@ -60,16 +60,17 @@ if not a.start_at_source:
 # Representative original: copy, never edit original; private debug app storage only
 adb('shell','cmd','connectivity','airplane-mode','enable')
 config=json.loads((root/'.local/audio.json').read_text()); source=pathlib.Path(config['recordingsRoot'])/config['representative']
-adb('push',str(source),'/data/local/tmp/athar-representative.mp3');adb('shell','run-as',pkg,'cp','/data/local/tmp/athar-representative.mp3','files/representative.mp3');adb('shell','rm','/data/local/tmp/athar-representative.mp3');adb('shell','am','force-stop',pkg);launch();tap('Learn');tap('Open lesson')
-if has('Use test tone'): tap('Use test tone')
-tap('Use original audio');tap('Play audio');time.sleep(3);check(position()[0]>0 and position()[1]==30,'Original MP3 timestamp range plays offline');pause();tree('source-range');shot('source-range');tap('Open full original');top();tap('Play audio');time.sleep(2);check(position()[1]>30,'Full original is available');pause();before=position()[0];adb('shell','am','force-stop',pkg);launch();tap('Learn');tap('Open lesson');check(position()[0]>=before,'Original audio position resumes after restart');tree('source-resumed');shot('source-resumed')
+adb('push',str(source),'/data/local/tmp/athar-representative.mp3');adb('shell','run-as',pkg,'mkdir','-p','files');adb('shell','run-as',pkg,'cp','/data/local/tmp/athar-representative.mp3','files/representative.mp3');adb('shell','rm','/data/local/tmp/athar-representative.mp3');adb('shell','am','force-stop',pkg);launch();tap('Learn');tap('Open lesson')
+tap('Development: use injected file');
+if has('Test timestamp range'): tap('Test timestamp range')
+top();tap('Replay 10 seconds');tap('Play audio');time.sleep(3);check(position()[0]>0 and position()[1]==30,'Original MP3 timestamp range plays offline');pause();tree('source-range');shot('source-range');tap('Open full recording');top();tap('Play audio');time.sleep(2);check(position()[1]>30,'Full original is available');pause();before=position()[0];adb('shell','am','force-stop',pkg);launch();tap('Learn');tap('Open lesson');check(position()[0]>=before,'Original audio position resumes after restart');tree('source-resumed');shot('source-resumed')
 # Enlarged text, reduced motion and scripts
 adb('shell','settings','put','system','font_scale','1.5')
 for key in ['animator_duration_scale','transition_animation_scale','window_animation_scale']: adb('shell','settings','put','global',key,'0')
 adb('shell','am','force-stop',pkg);launch();tree('large-text-today');shot('large-text-today');tap('Settings');tree('script-test-large');shot('script-test-large')
 if not has('ا ب ت ث ج ح خ'): adb('shell','input','swipe','180','600','180','200','350')
 tree('script-test-large');shot('script-test-large');check(has('ሀ ሁ ሂ ሃ ሄ ህ ሆ'),'Ethiopic glyph fixture present in UI');check(has('ا ب ت ث ج ح خ'),'Arabic glyph fixture present in UI')
-tap('Back to Today');tap('Revisit practice');tap('Open lesson');tap('Try practice questions');tap('Pause audio');tap('Check answer');tap('Next question');tap('Finish lesson');tap('Check answer');tap('Finish lesson');check(has('Completion saved'),'Complete flow operable with 150% text and animations disabled');tree('large-text-completed');shot('large-text-completed')
+tap('Back to Today');tap('Revisit practice' if has('Revisit practice') else 'Begin practice');tap('Open lesson');tap('Try practice questions');tap('Pause audio');tap('Check answer');tap('Next question');tap('Finish lesson');tap('Check answer');tap('Finish lesson');check(has('Completion saved'),'Complete flow operable with 150% text and animations disabled');tree('large-text-completed');shot('large-text-completed')
 adb('shell','settings','put','system','font_scale','1.0');adb('shell','cmd','connectivity','airplane-mode','disable')
 for key in ['animator_duration_scale','transition_animation_scale','window_animation_scale']: adb('shell','settings','put','global',key,'1')
 summary={'scope':'source-and-accessibility' if a.start_at_source else 'complete','device':adb('shell','getprop','ro.product.model').strip(),'android':adb('shell','getprop','ro.build.version.release').strip(),'display':adb('shell','wm','size').strip(),'checks':results}
