@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "developmentOnly": true,
+  "language": "en",
+  "course": {
+    "id": "controls-course",
+    "title": "App controls",
+    "curriculumStatus": "fixture"
+  },
+  "permissions": [
+    {
+      "id": "neutral-fixture",
+      "status": "authorized",
+      "source": "Developer-authored interface instructions; no religious claims"
+    }
+  ],
+  "recordings": [
+    {
+      "id": "tone",
+      "relativePath": "neutral-tone.wav",
+      "speaker": null,
+      "permissionRef": "neutral-fixture",
+      "durationMs": 12000
+    }
+  ],
+  "segments": [
+    {
+      "id": "tone-all",
+      "recordingId": "tone",
+      "startMs": 0,
+      "endMs": 12000,
+      "boundaryReviewed": false
+    }
+  ],
+  "concepts": [
+    {
+      "id": "pause-control"
+    },
+    {
+      "id": "completion-control"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "controls-fixture",
+      "version": 1,
+      "title": "Learn the controls",
+      "language": "en",
+      "state": "draft",
+      "segmentRef": "tone-all",
+      "permissionRef": "neutral-fixture",
+      "contentType": "interface-fixture",
+      "notes": "Play starts audio. Pause stops it temporarily. Replay moves back ten seconds.",
+      "reviews": [],
+      "questions": [
+        {
+          "id": "q0",
+          "version": 1,
+          "conceptId": "pause-control",
+          "prompt": "Which control pauses playback?",
+          "choices": [
+            "Pause audio",
+            "Settings",
+            "Finish lesson"
+          ],
+          "correctIndex": 0,
+          "explanation": "Pause audio temporarily stops playback. You can resume using Play audio.",
+          "sourceRef": {
+            "kind": "fixture-text",
+            "lessonId": "controls-fixture",
+            "contentVersion": 1,
+            "passage": "notes"
+          },
+          "reviews": []
+        },
+        {
+          "id": "q1",
+          "version": 1,
+          "conceptId": "completion-control",
+          "prompt": "Which action saves lesson completion?",
+          "choices": [
+            "Opening the app",
+            "Selecting a recording",
+            "Finish lesson"
+          ],
+          "correctIndex": 2,
+          "explanation": "Finish lesson saves your completed lesson on this device. Opening the app alone does not complete it.",
+          "sourceRef": {
+            "kind": "fixture-text",
+            "lessonId": "controls-fixture",
+            "contentVersion": 1,
+            "passage": "interface-contract"
+          },
+          "reviews": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "build": "assembleDebug passed",
+  "lint": "lintDebug passed; 19 warnings, no errors",
+  "unitTests": 2,
+  "androidPersistenceTests": 1,
+  "contentTests": 4,
+  "sourceChecksumsUnchanged": 21,
+  "apk": {
+    "apkBytes": 11731757,
+    "apkSha256": "0e9030d25f791addac4a01a39c3823c96dba8a9b3ad8d4f690e92f9ec5baca52"
+  },
+  "appSourceCommit": "c9a994ff779b998d12bfaed0addbf20696a67e12"
+}
