@@ -1,0 +1,20 @@
+{
+  "device": "sdk_gphone64_x86_64 / ElmPrototype",
+  "android": "16 / API 36",
+  "display": "360x800 at 160dpi",
+  "appSourceCommit": "c9a994ff779b998d12bfaed0addbf20696a67e12",
+  "observedChecks": [
+    "Bundled audio position advances",
+    "Incorrect answer shows correction",
+    "Completion saved after two checks",
+    "One durable completion",
+    "Completion survives process restart",
+    "Repeated completion leaves count at one",
+    "Quiz and completion work with airplane mode enabled",
+    "Bundled playback works in airplane mode"
+  ],
+  "commands": [
+    "python scripts/verify_prototype.py --adb <local-adb> --reset"
+  ],
+  "note": "Checks observed across actual runs; subsequent source checks resumed separately after automation pause-state issues. This is a report of observed checks, not a fabricated uninterrupted-run log."
+}

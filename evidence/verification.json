@@ -1,0 +1,14 @@
+{
+  "scope": "source-and-accessibility",
+  "device": "sdk_gphone64_x86_64",
+  "android": "16",
+  "display": "Physical size: 360x800",
+  "checks": [
+    "Original MP3 timestamp range plays offline",
+    "Full original is available",
+    "Original audio position resumes after restart",
+    "Ethiopic glyph fixture present in UI",
+    "Arabic glyph fixture present in UI",
+    "Complete flow operable with 150% text and animations disabled"
+  ]
+}

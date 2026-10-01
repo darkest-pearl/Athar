@@ -30,3 +30,6 @@ python scripts/inventory.py 'your-recordings-folder'
 No recording was uploaded or transcribed. SHA-256, durations and filename sequence hints are recorded. Order is not treated as curriculum approval.
 
 See docs/STATUS.md for actual results, docs/CONTENT.md for the publication gate, and docs/ARCHITECTURE.md for platform decisions.
+
+## Verification evidence
+Actual checks, limitations and screenshots: docs/STATUS.md and evidence/. The script can be resumed for source/accessibility checks with --start-at-source. The full --reset flow clears only the isolated prototype app data on the connected test device; do not use it on a device whose guest progress you wish to retain. A real interaction recording remains in ignored .local/athar-prototype-flow.mp4.

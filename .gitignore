@@ -24,3 +24,6 @@
 .env.*
 __pycache__/
 /.agents/
+/evidence/current.xml
+/.aws/
+*.mp4
