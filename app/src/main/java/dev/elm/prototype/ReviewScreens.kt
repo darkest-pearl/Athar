@@ -5,10 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 @Composable
 fun ReviewOverview(dueCount: Int, finished: Boolean, start: () -> Unit) {
@@ -33,20 +30,18 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
     Note(stringResource(R.string.review_progress, index + 1, total))
     Note(question.prompt)
     question.choices.forEachIndexed { choiceIndex, choice ->
-        OutlinedButton(onClick = { onSelect(choiceIndex) }, enabled = !feedback && !revealed && !busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .semantics { selected = selectedIndex == choiceIndex }) {
-            Text(if (selectedIndex == choiceIndex) stringResource(R.string.selected_prefix, choice)
-                else choice, fontSize = 18.sp)
-        }
+        AnswerChoice(choice, selectedIndex == choiceIndex,
+            choiceIndex == question.correctIndex, feedback || revealed, busy) { onSelect(choiceIndex) }
     }
     if (!feedback) {
-        if (!hinted) TextButton(onClick = onHint) { Text(stringResource(R.string.show_hint)) }
-        if (hinted) Panel { Note(lesson.notes) }
-        if (!revealed) TextButton(onClick = onReveal) { Text(stringResource(R.string.reveal_answer)) }
-        if (revealed) Panel {
-            Note(stringResource(R.string.revealed_answer, question.choices[question.correctIndex]))
+        if (!hinted) TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.show_hint))
         }
+        if (hinted) Panel { Note(lesson.notes) }
+        if (!revealed) TextButton(onClick = onReveal, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.reveal_answer))
+        }
+        if (revealed) Note(stringResource(R.string.reveal_note))
         Action(stringResource(R.string.submit_review), (selectedIndex >= 0 || revealed) && !busy, onSubmit)
     } else {
         Panel {
@@ -57,9 +52,11 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
             Note(question.explanation)
             Note(stringResource(R.string.review_source))
         }
-        TextButton(onClick = onSource) { Text(stringResource(R.string.replay_review_source)) }
+        TextButton(onClick = onSource, modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.replay_review_source))
+        }
         if (sourceVisible) androidx.compose.runtime.key(question.conceptId) { AudioPanel(pack, lesson) }
         Action(stringResource(if (index + 1 < total) R.string.review_next else R.string.review_finish),
-            click = onNext)
+            enabled = !busy, click = onNext)
     }
 }

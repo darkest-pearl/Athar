@@ -20,6 +20,9 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
@@ -168,9 +171,11 @@ fun AtharApp(db: LearningDatabase) {
                         fontWeight = FontWeight.Bold)
                     TextButton(onClick = { page = "Settings" }) { Text(stringResource(R.string.nav_settings)) }
                 }
-                Column(Modifier.weight(1f).verticalScroll(scroll)
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
+                  Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()
+                      .padding(horizontal = 24.dp, vertical = 16.dp),
+                      verticalArrangement = Arrangement.spacedBy(24.dp)) {
                     val active = pack
                     if (active == null) {
                         Title(stringResource(R.string.app_name))
@@ -215,7 +220,7 @@ fun AtharApp(db: LearningDatabase) {
                                 onQuickRecall = {
                                     startReviews(lesson.prerequisiteConceptIds, true)
                                 })
-                            "Quiz" -> QuizScreen(lesson, questionIndex, selected, feedback, busy,
+                            "Quiz" -> QuizScreen(active, lesson, questionIndex, selected, feedback, busy,
                                 onSelect = { selected = it },
                                 onCheck = {
                                     busy = true
@@ -327,9 +332,14 @@ fun AtharApp(db: LearningDatabase) {
                                 onHome = { page = "Today" })
                         }
                     }
+                  }
                 }
-                Row(Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly) {
+                val destinationPage = when (page) {
+                    "Lesson", "Quiz", "Done" -> "Learn"
+                    else -> page
+                }
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("Today", "Learn", "Review", "Progress").forEach { destination ->
                         val label = when (destination) {
                             "Today" -> R.string.nav_today
@@ -337,10 +347,18 @@ fun AtharApp(db: LearningDatabase) {
                             "Review" -> R.string.nav_review
                             else -> R.string.nav_progress
                         }
+                        val activeDestination = destinationPage == destination
                         TextButton(onClick = { page = destination },
-                            modifier = Modifier.heightIn(min = 48.dp)
-                                .semantics { this.selected = page == destination }) {
-                            Text(stringResource(label))
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                containerColor = if (activeDestination)
+                                    MaterialTheme.colorScheme.secondaryContainer else Color.Transparent),
+                            contentPadding = PaddingValues(horizontal = 2.dp),
+                            modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                                .semantics { this.selected = activeDestination }) {
+                            Text(stringResource(label), maxLines = 1, softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.labelMedium)
                         }
                     }
                 }

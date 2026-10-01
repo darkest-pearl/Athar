@@ -11,9 +11,9 @@
     <string name="revisit_lesson">Revisit lesson</string>
     <string name="your_next_step">YOUR NEXT STEP</string>
     <string name="today_title">A calm step today</string>
-    <string name="today_subtitle">Practice app controls while reviewed teaching content is prepared.</string>
+    <string name="today_subtitle">Continue where you left off.</string>
     <string name="course_title">Lessons</string>
-    <string name="course_count">%1$d neutral lessons · development only</string>
+    <string name="course_count">Lessons: %1$d</string>
     <string name="lesson_complete">Completed</string>
     <string name="bookmark_add">Bookmark lesson</string>
     <string name="bookmark_remove">Remove bookmark</string>
@@ -38,7 +38,7 @@
     <string name="audio_failed">Audio could not be opened. Re-select the local recording or use the bundled test tone.</string>
     <string name="audio_grant_failed">Audio access failed. Select the file again.</string>
     <string name="try_questions">Try practice questions</string>
-    <string name="question_progress">Question %1$d of %2$d · neutral fixture</string>
+    <string name="question_progress">Question %1$d of %2$d</string>
     <string name="check_answer">Check answer</string>
     <string name="correct_answer">Correct · practice only</string>
     <string name="incorrect_answer">Let’s look again</string>
@@ -50,7 +50,7 @@
     <string name="completion_note">Your practice lesson is recorded on this device. Participation is separate from mastery.</string>
     <string name="see_progress">See progress</string>
     <string name="progress_title">Your learning record</string>
-    <string name="progress_count">%1$d current lessons completed</string>
+    <string name="progress_count">Completed current lessons: %1$d</string>
     <string name="progress_bookmarks">Bookmarks</string>
     <string name="progress_guest">Guest progress stays on this device. Clearing app data or uninstalling removes it.</string>
     <string name="settings_title">Settings and development content</string>
@@ -61,6 +61,9 @@
     <string name="use_garden">Use garden direction</string>
     <string name="pending_translation">Reviewed Tigrinya wording and native reading review are pending.</string>
     <string name="source_fixture">Source: neutral interface fixture. No religious teaching content.</string>
+    <string name="source_pack">Explanation and source metadata come from the active local pack.</string>
+    <string name="correct_choice">Correct answer: %1$s</string>
+    <string name="your_choice">Your answer: %1$s</string>
     <string name="nothing_due">No reviews are due yet.</string>
     <string name="back_to_today">Back to Today</string>
     <string name="selected_prefix">Selected: %1$s</string>
@@ -75,7 +78,7 @@
     <string name="audio_source_note">This local recording is linked by its pack recording ID. Review metadata has not been independently authenticated.</string>
     <string name="ethiopic_sample">ሀ ሁ ሂ ሃ ሄ ህ ሆ</string>
     <string name="arabic_sample">ا ب ت ث ج ح خ</string>
-    <string name="due_count">%1$d reviews due</string>
+    <string name="due_count">Due reviews: %1$d</string>
     <string name="review_empty">Nothing is due. Completed concepts will return here for practice.</string>
     <string name="review_intro">A short recall batch, at your pace.</string>
     <string name="review_catchup">There is more to revisit. Each batch stays short.</string>
@@ -97,6 +100,9 @@
     <string name="related_recall">Quick recall before this lesson</string>
     <string name="related_recall_note">Optional check of a concept you already practiced. You can continue the lesson at any time.</string>
     <string name="review_unavailable">This review question is unavailable in the active pack.</string>
+    <string name="reveal_note">Revealing the answer makes this assisted practice when saved.</string>
+    <string name="audio_more_controls">Audio source and test controls</string>
+    <string name="audio_hide_controls">Hide audio controls</string>
     <string name="streak_title">Study days</string>
     <string name="streak_current">Current streak: %1$d</string>
     <string name="streak_longest">Longest streak: %1$d</string>
