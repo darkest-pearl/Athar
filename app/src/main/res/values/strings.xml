@@ -97,4 +97,10 @@
     <string name="related_recall">Quick recall before this lesson</string>
     <string name="related_recall_note">Optional check of a concept you already practiced. You can continue the lesson at any time.</string>
     <string name="review_unavailable">This review question is unavailable in the active pack.</string>
+    <string name="streak_title">Study days</string>
+    <string name="streak_current">Current streak: %1$d</string>
+    <string name="streak_longest">Longest streak: %1$d</string>
+    <string name="streak_total">Total study days: %1$d</string>
+    <string name="streak_note">A completed lesson or due-review batch counts once per day. This records participation, not piety.</string>
+    <string name="study_save_failed">Study day could not be saved. Try again.</string>
 </resources>

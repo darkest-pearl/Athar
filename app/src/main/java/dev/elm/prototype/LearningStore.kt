@@ -27,6 +27,13 @@ import java.time.*
     val questionId: String, val questionVersion: Int, val stage: Int,
     val learnedAt: Long, val dueAt: Long, val lastReviewedAt: Long?
 )
+@Entity data class StudySession(
+    @PrimaryKey val id: String, val kind: String, val reference: String,
+    val completedAt: Long, val studyDay: String, val studyZone: String
+)
+@Entity data class StudyDayCredit(
+    @PrimaryKey val studyDay: String, val firstAt: Long, val studyZone: String
+)
 
 @Dao interface LearningDao {
     @Query("SELECT * FROM Completion") fun observeCompletions(): Flow<List<Completion>>
@@ -54,10 +61,18 @@ import java.time.*
     suspend fun reviewState(conceptId: String): ReviewState?
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertReviewState(value: ReviewState): Long
     @Update suspend fun updateReviewState(value: ReviewState): Int
+    @Query("SELECT * FROM AnswerEvent WHERE sessionId=:sessionId")
+    suspend fun sessionAnswers(sessionId: String): List<AnswerEvent>
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertStudySession(value: StudySession): Long
+    @Query("SELECT * FROM StudySession ORDER BY completedAt ASC") suspend fun studySessions(): List<StudySession>
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertStudyDayCredit(value: StudyDayCredit): Long
+    @Query("SELECT * FROM StudyDayCredit ORDER BY studyDay ASC") fun observeStudyDays(): Flow<List<StudyDayCredit>>
+    @Query("SELECT * FROM StudyDayCredit ORDER BY studyDay ASC") suspend fun studyDays(): List<StudyDayCredit>
 }
 
 @Database(entities = [Completion::class, Attempt::class, LessonCompletion::class,
-    AnswerEvent::class, Bookmark::class, ReviewState::class], version = 3, exportSchema = true)
+    AnswerEvent::class, Bookmark::class, ReviewState::class,
+    StudySession::class, StudyDayCredit::class], version = 4, exportSchema = true)
 abstract class LearningDatabase : RoomDatabase() {
     abstract fun learningDao(): LearningDao
     companion object {
@@ -95,9 +110,27 @@ abstract class LearningDatabase : RoomDatabase() {
                 // ReviewRepository seeds existing completed lessons after pack load.
             }
         }
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS StudySession (
+                    id TEXT NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL,
+                    completedAt INTEGER NOT NULL, studyDay TEXT NOT NULL, studyZone TEXT NOT NULL,
+                    PRIMARY KEY(id))""")
+                db.execSQL("""CREATE TABLE IF NOT EXISTS StudyDayCredit (
+                    studyDay TEXT NOT NULL, firstAt INTEGER NOT NULL, studyZone TEXT NOT NULL,
+                    PRIMARY KEY(studyDay))""")
+                // Completed lessons in installed v3 apps are legitimate earlier study days.
+                db.execSQL("""INSERT OR IGNORE INTO StudySession
+                    SELECT 'legacy:' || `key`, 'lesson', lessonId, completedAt, studyDay, studyZone
+                    FROM LessonCompletion""")
+                db.execSQL("""INSERT OR IGNORE INTO StudyDayCredit
+                    SELECT studyDay, MIN(completedAt), MIN(studyZone)
+                    FROM LessonCompletion GROUP BY studyDay""")
+            }
+        }
         fun open(context: Context, name: String = "elm-learning.db") =
             Room.databaseBuilder(context, LearningDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 }
 
