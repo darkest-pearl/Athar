@@ -47,6 +47,11 @@ class StudyRepository(private val db: LearningDatabase, private val dao: Learnin
         val inserted = dao.insertStudySession(StudySession("lesson:$courseId:$sessionId", "lesson",
             "$courseId:${lesson.id}:v${lesson.version}", now.toEpochMilli(), day, zone.id)) != -1L
         if (inserted) dao.insertStudyDayCredit(StudyDayCredit(day, now.toEpochMilli(), zone.id))
+        dao.pendingSession(sessionId)?.let {
+            require(it.courseId == courseId && it.kind == "lesson" &&
+                it.lessonId == lesson.id && it.lessonVersion == lesson.version)
+            dao.updatePendingSession(it.copy(finalized = true, updatedAt = now.toEpochMilli()))
+        }
         inserted
     }
 
@@ -67,6 +72,12 @@ class StudyRepository(private val db: LearningDatabase, private val dao: Learnin
                 "$courseId:" + dueItems.joinToString(",") { it.conceptId },
                 now.toEpochMilli(), day, zone.id)) != -1L
             if (inserted) dao.insertStudyDayCredit(StudyDayCredit(day, now.toEpochMilli(), zone.id))
+            dao.pendingSession(sessionId)?.let {
+                require(it.courseId == courseId && it.kind == "review")
+                require(it.items().filter { item -> item.wasDue }.map { item -> item.conceptId } ==
+                    dueItems.map { state -> state.conceptId }) { "Review batch changed" }
+                dao.updatePendingSession(it.copy(finalized = true, updatedAt = now.toEpochMilli()))
+            }
             inserted
         }
 }

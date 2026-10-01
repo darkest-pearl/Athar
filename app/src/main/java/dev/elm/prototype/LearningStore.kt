@@ -38,6 +38,13 @@ data class ReviewState(
 @Entity data class StudyDayCredit(
     @PrimaryKey val studyDay: String, val firstAt: Long, val studyZone: String
 )
+@Entity data class PendingSession(
+    @PrimaryKey val id: String, val courseId: String, val kind: String,
+    val contentVersion: Int, val lessonId: String, val lessonVersion: Int,
+    val itemsJson: String, val cursor: Int, val selected: Int,
+    val hinted: Boolean, val revealed: Boolean, val feedback: Boolean,
+    val finalized: Boolean, val startedAt: Long, val updatedAt: Long
+)
 
 @Dao interface LearningDao {
     @Query("SELECT * FROM Completion") fun observeCompletions(): Flow<List<Completion>>
@@ -71,6 +78,12 @@ data class ReviewState(
     suspend fun deleteReviewState(courseId: String, conceptId: String): Int
     @Query("SELECT * FROM AnswerEvent WHERE courseId=:courseId AND sessionId=:sessionId")
     suspend fun sessionAnswers(sessionId: String, courseId: String = "controls-course"): List<AnswerEvent>
+    @Query("SELECT * FROM AnswerEvent WHERE id=:id LIMIT 1") suspend fun answerEvent(id: String): AnswerEvent?
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertPendingSession(value: PendingSession): Long
+    @Update suspend fun updatePendingSession(value: PendingSession): Int
+    @Query("SELECT * FROM PendingSession WHERE id=:id LIMIT 1") suspend fun pendingSession(id: String): PendingSession?
+    @Query("SELECT * FROM PendingSession WHERE finalized=0 ORDER BY updatedAt DESC")
+    fun observePendingSessions(): Flow<List<PendingSession>>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertStudySession(value: StudySession): Long
     @Query("SELECT * FROM StudySession ORDER BY completedAt ASC") suspend fun studySessions(): List<StudySession>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertStudyDayCredit(value: StudyDayCredit): Long
@@ -80,7 +93,7 @@ data class ReviewState(
 
 @Database(entities = [Completion::class, Attempt::class, LessonCompletion::class,
     AnswerEvent::class, Bookmark::class, ReviewState::class,
-    StudySession::class, StudyDayCredit::class], version = 5, exportSchema = true)
+    StudySession::class, StudyDayCredit::class, PendingSession::class], version = 6, exportSchema = true)
 abstract class LearningDatabase : RoomDatabase() {
     abstract fun learningDao(): LearningDao
     companion object {
@@ -178,9 +191,23 @@ abstract class LearningDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE ReviewState_new RENAME TO ReviewState")
             }
         }
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS PendingSession (
+                    id TEXT NOT NULL, courseId TEXT NOT NULL, kind TEXT NOT NULL,
+                    contentVersion INTEGER NOT NULL, lessonId TEXT NOT NULL,
+                    lessonVersion INTEGER NOT NULL, itemsJson TEXT NOT NULL,
+                    cursor INTEGER NOT NULL, selected INTEGER NOT NULL,
+                    hinted INTEGER NOT NULL, revealed INTEGER NOT NULL,
+                    feedback INTEGER NOT NULL, finalized INTEGER NOT NULL,
+                    startedAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL,
+                    PRIMARY KEY(id))""")
+            }
+        }
         fun open(context: Context, name: String = "elm-learning.db") =
             Room.databaseBuilder(context, LearningDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5,
+                    MIGRATION_5_6).build()
     }
 }
 

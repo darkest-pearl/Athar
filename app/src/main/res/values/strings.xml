@@ -109,4 +109,10 @@
     <string name="streak_total">Total study days: %1$d</string>
     <string name="streak_note">A completed lesson or due-review batch counts once per day. This records participation, not piety.</string>
     <string name="study_save_failed">Study day could not be saved. Try again.</string>
+    <string name="session_continue_title">Study in progress</string>
+    <string name="session_continue_note">Your saved answers and practice are ready to continue.</string>
+    <string name="session_continue_action">Continue study</string>
+    <string name="session_unavailable_title">This session needs attention</string>
+    <string name="session_unavailable_note">The exact lesson or review source is no longer in the active content. Saved answers remain in your history; close this session and start with current material.</string>
+    <string name="session_close_action">Close this session</string>
 </resources>

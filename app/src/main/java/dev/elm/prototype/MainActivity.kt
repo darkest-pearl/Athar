@@ -58,6 +58,9 @@ fun AtharApp(db: LearningDatabase) {
     }
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
     val study = remember(db, zone) { StudyRepository(db, dao, Clock.systemUTC(), zone) }
+    val sessions = remember(db) { SessionRepository(db, dao, Clock.systemUTC()) }
+    val pendingSessions by remember(dao) { dao.observePendingSessions() }
+        .collectAsState(initial = emptyList())
     val studyDays by remember(dao) { dao.observeStudyDays() }
         .collectAsState(initial = emptyList())
     val reviewClock = remember { Clock.systemUTC() }
@@ -97,7 +100,30 @@ fun AtharApp(db: LearningDatabase) {
     var reviewSourceVisible by remember { mutableStateOf(false) }
     var reviewFinished by remember { mutableStateOf(false) }
     var reviewReturnToLesson by remember { mutableStateOf(false) }
-    var reviewSessionId by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    var reviewSessionId by rememberSaveable { mutableStateOf(UUID.randomUUID().toString()) }
+    LaunchedEffect(page, sessionId, reviewSessionId, pendingSessions) {
+        if (page == "Quiz") pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
+            ?.let { saved ->
+                lessonId = saved.lessonId
+                questionIndex = saved.cursor
+                selected = saved.selected
+                feedback = saved.feedback
+            }
+        if (page == "Review") pendingSessions.firstOrNull { it.id == reviewSessionId &&
+            it.kind == "review" }?.let { saved ->
+            val items = saved.items()
+            reviewBatch = items.map { it.reviewState(saved.courseId) }
+            reviewDueItems = items.filter { it.wasDue }.map { it.reviewState(saved.courseId) }
+            reviewIndex = saved.cursor
+            reviewChoice = saved.selected
+            reviewHinted = saved.hinted
+            reviewRevealed = saved.revealed
+            reviewFeedback = saved.feedback
+            reviewWasDue = items.getOrNull(saved.cursor)?.wasDue == true
+            reviewReturnToLesson = saved.lessonId.isNotBlank()
+            if (saved.lessonId.isNotBlank()) lessonId = saved.lessonId
+        }
+    }
     fun eligibleStates(): List<ReviewState> {
         val current = pack ?: return emptyList()
         return reviewStates.filter { state ->
@@ -111,18 +137,29 @@ fun AtharApp(db: LearningDatabase) {
     }
     fun startReviews(related: List<String> = emptyList(), returnToLesson: Boolean = false) {
         val batch = selectReviewBatch(eligibleStates(), Instant.ofEpochMilli(nowMillis), related)
-        reviewBatch = batch
-        reviewDueItems = batch.filter { it.dueAt <= nowMillis }
-        reviewIndex = 0
-        reviewChoice = -1
-        reviewHinted = false
-        reviewRevealed = false
-        reviewFeedback = false
-        reviewSourceVisible = false
-        reviewFinished = false
-        reviewReturnToLesson = returnToLesson
-        reviewSessionId = UUID.randomUUID().toString()
-        page = "Review"
+        val current = pack ?: return
+        if (batch.isEmpty()) { page = "Review"; return }
+        busy = true
+        scope.launch {
+            try {
+                val id = UUID.randomUUID().toString()
+                sessions.startReview(current, batch, id,
+                    if (returnToLesson) lessonId else "")
+                reviewSessionId = id
+                reviewBatch = batch
+                reviewDueItems = batch.filter { it.dueAt <= nowMillis }
+                reviewIndex = 0
+                reviewChoice = -1
+                reviewHinted = false
+                reviewRevealed = false
+                reviewFeedback = false
+                reviewSourceVisible = false
+                reviewFinished = false
+                reviewReturnToLesson = returnToLesson
+                page = "Review"
+            } catch (_: Exception) { error = context.getString(R.string.study_save_failed) }
+            finally { busy = false }
+        }
     }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val current = pack
@@ -194,9 +231,38 @@ fun AtharApp(db: LearningDatabase) {
                         val dueCount = dueReviewCount(eligible, Instant.ofEpochMilli(nowMillis))
                         val streak = streakStats(studyDays,
                             Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate())
+                        val resumable = pendingSessions.firstOrNull { it.courseId == active.courseId }
                         when (page) {
-                            "Today" -> TodayScreen(active, completions.filter { it.courseId == active.courseId }, dueCount, streak, ::openLesson) {
-                                startReviews()
+                            "Today" -> {
+                                if (resumable != null) Panel {
+                                    Text(stringResource(R.string.session_continue_title),
+                                        style = MaterialTheme.typography.titleMedium)
+                                    Note(stringResource(R.string.session_continue_note))
+                                    Action(stringResource(R.string.session_continue_action)) {
+                                        if (resumable.kind == "lesson") {
+                                            sessionId = resumable.id
+                                            lessonId = resumable.lessonId
+                                            questionIndex = resumable.cursor
+                                            selected = resumable.selected
+                                            feedback = resumable.feedback
+                                            page = "Quiz"
+                                        } else {
+                                            reviewSessionId = resumable.id
+                                            reviewReturnToLesson = false
+                                            page = "Review"
+                                        }
+                                    }
+                                }
+                                TodayScreen(active, completions.filter { it.courseId == active.courseId },
+                                    dueCount, streak, ::openLesson) {
+                                    val pendingReview = pendingSessions.firstOrNull {
+                                        it.courseId == active.courseId && it.kind == "review"
+                                    }
+                                    if (pendingReview != null) {
+                                        reviewSessionId = pendingReview.id
+                                        page = "Review"
+                                    } else startReviews()
+                                }
                             }
                             "Learn" -> CourseScreen(active, completions.filter { it.courseId == active.courseId },
                                 bookmarks.filter { it.courseId == active.courseId }, ::openLesson)
@@ -218,20 +284,59 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 },
                                 onQuiz = {
-                                    questionIndex = 0; selected = -1; feedback = false; page = "Quiz"
+                                    val pendingLesson = pendingSessions.firstOrNull {
+                                        it.courseId == active.courseId && it.kind == "lesson" &&
+                                            it.lessonId == lesson.id && it.lessonVersion == lesson.version
+                                    }
+                                    if (pendingLesson != null) {
+                                        sessionId = pendingLesson.id
+                                        questionIndex = pendingLesson.cursor
+                                        selected = pendingLesson.selected
+                                        feedback = pendingLesson.feedback
+                                        page = "Quiz"
+                                    } else {
+                                        busy = true
+                                        scope.launch {
+                                            try {
+                                                val id = UUID.randomUUID().toString()
+                                                sessions.startLesson(active, lesson, id)
+                                                sessionId = id
+                                                questionIndex = 0; selected = -1; feedback = false
+                                                page = "Quiz"
+                                            } catch (_: Exception) {
+                                                error = context.getString(R.string.study_save_failed)
+                                            } finally { busy = false }
+                                        }
+                                    }
                                 },
                                 onQuickRecall = {
                                     startReviews(lesson.prerequisiteConceptIds, true)
                                 })
-                            "Quiz" -> QuizScreen(active, lesson, questionIndex, selected, feedback, busy,
-                                onSelect = { selected = it },
+                            "Quiz" -> if (pendingSessions.firstOrNull { it.id == sessionId }
+                                ?.let { it.courseId != active.courseId || it.lessonId != lesson.id ||
+                                    it.lessonVersion != lesson.version ||
+                                    it.items().any { item -> lesson.questions.none { question ->
+                                        question.id == item.questionId &&
+                                            question.version == item.questionVersion &&
+                                            question.conceptId == item.conceptId } } } == true) {
+                                Title(stringResource(R.string.session_unavailable_title))
+                                Note(stringResource(R.string.session_unavailable_note))
+                                Action(stringResource(R.string.session_close_action)) {
+                                    scope.launch { sessions.abandon(sessionId); page = "Today" }
+                                }
+                            } else QuizScreen(active, lesson, questionIndex, selected, feedback, busy,
+                                onSelect = {
+                                    selected = it
+                                    scope.launch { runCatching { sessions.updateInput(sessionId, selected = it) } }
+                                },
                                 onCheck = {
                                     busy = true
                                     val question = lesson.questions[questionIndex]
                                     scope.launch {
                                         try {
-                                            repo.submitLessonAnswer(lesson, question, sessionId, selected,
-                                                courseId = active.courseId)
+                                            sessions.updateInput(sessionId, selected = selected)
+                                            val result = sessions.submitLesson(sessionId, lesson, question)
+                                            selected = result.event.selected
                                             feedback = true
                                             error = null
                                         } catch (_: Exception) {
@@ -240,9 +345,17 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 },
                                 onNext = {
-                                    questionIndex++
-                                    selected = -1
-                                    feedback = false
+                                    busy = true
+                                    scope.launch {
+                                        try {
+                                            val next = sessions.advance(sessionId)
+                                            questionIndex = next.cursor
+                                            selected = -1
+                                            feedback = false
+                                        } catch (_: Exception) {
+                                            error = context.getString(R.string.study_save_failed)
+                                        } finally { busy = false }
+                                    }
                                 },
                                 onFinish = {
                                     busy = true
@@ -269,14 +382,30 @@ fun AtharApp(db: LearningDatabase) {
                                         it.id == state.questionId && it.version == state.questionVersion &&
                                             it.conceptId == state.conceptId
                                     }
+                                    val currentSource = eligible.firstOrNull { it.conceptId == state.conceptId &&
+                                        it.courseId == state.courseId }
+                                    val sourceChanged = !reviewFeedback && (currentSource == null ||
+                                        currentSource.lessonId != state.lessonId ||
+                                        currentSource.lessonVersion != state.lessonVersion ||
+                                        currentSource.questionId != state.questionId ||
+                                        currentSource.questionVersion != state.questionVersion ||
+                                        currentSource.stage != state.stage || currentSource.dueAt != state.dueAt)
                                     fun advanceReview() {
                                         if (reviewIndex + 1 < reviewBatch.size) {
-                                            reviewIndex++
-                                            reviewChoice = -1
-                                            reviewHinted = false
-                                            reviewRevealed = false
-                                            reviewFeedback = false
-                                            reviewSourceVisible = false
+                                            busy = true
+                                            scope.launch {
+                                                try {
+                                                    val next = sessions.advance(reviewSessionId)
+                                                    reviewIndex = next.cursor
+                                                    reviewChoice = -1
+                                                    reviewHinted = false
+                                                    reviewRevealed = false
+                                                    reviewFeedback = false
+                                                    reviewSourceVisible = false
+                                                } catch (_: Exception) {
+                                                    error = context.getString(R.string.study_save_failed)
+                                                } finally { busy = false }
+                                            }
                                         } else {
                                             busy = true
                                             scope.launch {
@@ -284,6 +413,7 @@ fun AtharApp(db: LearningDatabase) {
                                                     if (reviewDueItems.isNotEmpty())
                                                         study.completeDueReviewBatch(reviewDueItems, reviewSessionId,
                                                             active.courseId)
+                                                    else sessions.abandon(reviewSessionId)
                                                     reviewBatch = emptyList()
                                                     reviewDueItems = emptyList()
                                                     reviewFinished = true
@@ -295,25 +425,53 @@ fun AtharApp(db: LearningDatabase) {
                                             }
                                         }
                                     }
-                                    if (sourceLesson == null || sourceQuestion == null) {
-                                        Title(stringResource(R.string.nav_review))
-                                        Note(stringResource(R.string.review_unavailable))
-                                        Action(stringResource(R.string.review_next), click = ::advanceReview)
+                                    if (sourceLesson == null || sourceQuestion == null || sourceChanged) {
+                                        Title(stringResource(R.string.session_unavailable_title))
+                                        Note(stringResource(R.string.session_unavailable_note))
+                                        Action(stringResource(R.string.session_close_action)) {
+                                            scope.launch {
+                                                sessions.abandon(reviewSessionId)
+                                                reviewBatch = emptyList()
+                                                page = "Today"
+                                            }
+                                        }
                                     } else {
                                         ReviewQuestionScreen(active, sourceLesson, sourceQuestion,
                                             reviewIndex, reviewBatch.size, reviewChoice, reviewHinted,
                                             reviewRevealed, reviewFeedback, busy, reviewWasDue,
                                             reviewSourceVisible,
-                                            onSelect = { reviewChoice = it },
-                                            onHint = { reviewHinted = true },
-                                            onReveal = { reviewRevealed = true; reviewChoice = -1 },
+                                            onSelect = {
+                                                reviewChoice = it
+                                                scope.launch { runCatching {
+                                                    sessions.updateInput(reviewSessionId, selected = it)
+                                                } }
+                                            },
+                                            onHint = {
+                                                reviewHinted = true
+                                                scope.launch { runCatching {
+                                                    sessions.updateInput(reviewSessionId, hinted = true)
+                                                } }
+                                            },
+                                            onReveal = {
+                                                reviewRevealed = true; reviewChoice = -1
+                                                scope.launch { runCatching {
+                                                    sessions.updateInput(reviewSessionId,
+                                                        selected = -1, revealed = true)
+                                                } }
+                                            },
                                             onSubmit = {
                                                 busy = true
                                                 scope.launch {
                                                     try {
-                                                        val result = reviews.submit(state, sourceQuestion,
-                                                            reviewSessionId, reviewChoice, reviewHinted,
-                                                            reviewRevealed)
+                                                        sessions.updateInput(reviewSessionId,
+                                                            selected = reviewChoice,
+                                                            hinted = reviewHinted,
+                                                            revealed = reviewRevealed)
+                                                        val result = sessions.submitReview(reviewSessionId,
+                                                            sourceQuestion)
+                                                        reviewChoice = result.event.selected
+                                                        reviewHinted = result.event.hinted
+                                                        reviewRevealed = result.event.revealed
                                                         reviewWasDue = result.wasDue
                                                         reviewFeedback = true
                                                         error = null
