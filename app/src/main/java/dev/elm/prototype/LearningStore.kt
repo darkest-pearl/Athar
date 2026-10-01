@@ -128,5 +128,3 @@ class LearningRepository(private val dao: LearningDao, private val clock: Clock,
 }
 
 fun studyDay(instant: Instant, zone: ZoneId): String = instant.atZone(zone).toLocalDate().toString()
-
-\n
