@@ -23,9 +23,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Clock
+import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
@@ -52,6 +54,8 @@ fun AtharApp(db: LearningDatabase) {
             ?: ZoneId.systemDefault().id.also { prefs.edit().putString("study-zone", it).commit() })
     }
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
+    val reviewClock = remember { Clock.systemUTC() }
+    val reviews = remember(db) { ReviewRepository(db, dao, reviewClock) }
     val contentRepo = remember { ContentRepository(context) }
     val initial = remember { runCatching { contentRepo.load() } }
     var pack by remember { mutableStateOf(initial.getOrNull()) }
@@ -59,6 +63,13 @@ fun AtharApp(db: LearningDatabase) {
         .collectAsState(initial = emptyList())
     val bookmarks by remember(dao) { dao.observeBookmarks() }
         .collectAsState(initial = emptyList())
+    val reviewStates by remember(dao) { dao.observeReviewStates() }
+        .collectAsState(initial = emptyList())
+    var nowMillis by remember { mutableLongStateOf(reviewClock.millis()) }
+    LaunchedEffect(Unit) { while (true) { nowMillis = reviewClock.millis(); delay(60_000) } }
+    LaunchedEffect(pack, completions) {
+        pack?.let { reviews.ensureSeeded(it, completions) }
+    }
     var page by rememberSaveable { mutableStateOf("Today") }
     var direction by rememberSaveable { mutableStateOf(Direction.Garden) }
     var lessonId by rememberSaveable { mutableStateOf("") }
@@ -69,6 +80,41 @@ fun AtharApp(db: LearningDatabase) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var importStatus by remember { mutableStateOf<String?>(null) }
+    var reviewBatch by remember { mutableStateOf<List<ReviewState>>(emptyList()) }
+    var reviewIndex by remember { mutableIntStateOf(0) }
+    var reviewChoice by remember { mutableIntStateOf(-1) }
+    var reviewHinted by remember { mutableStateOf(false) }
+    var reviewRevealed by remember { mutableStateOf(false) }
+    var reviewFeedback by remember { mutableStateOf(false) }
+    var reviewWasDue by remember { mutableStateOf(true) }
+    var reviewSourceVisible by remember { mutableStateOf(false) }
+    var reviewFinished by remember { mutableStateOf(false) }
+    var reviewReturnToLesson by remember { mutableStateOf(false) }
+    var reviewSessionId by remember { mutableStateOf(UUID.randomUUID().toString()) }
+    fun eligibleStates(): List<ReviewState> {
+        val current = pack ?: return emptyList()
+        return reviewStates.filter { state ->
+            current.lessons.any { lesson ->
+                lesson.id == state.lessonId && lesson.version == state.lessonVersion &&
+                    lesson.questions.any { it.id == state.questionId &&
+                        it.version == state.questionVersion && it.conceptId == state.conceptId }
+            }
+        }
+    }
+    fun startReviews(related: List<String> = emptyList(), returnToLesson: Boolean = false) {
+        val batch = selectReviewBatch(eligibleStates(), Instant.ofEpochMilli(nowMillis), related)
+        reviewBatch = batch
+        reviewIndex = 0
+        reviewChoice = -1
+        reviewHinted = false
+        reviewRevealed = false
+        reviewFeedback = false
+        reviewSourceVisible = false
+        reviewFinished = false
+        reviewReturnToLesson = returnToLesson
+        reviewSessionId = UUID.randomUUID().toString()
+        page = "Review"
+    }
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         val current = pack
         if (uri != null && current != null) {
@@ -78,6 +124,7 @@ fun AtharApp(db: LearningDatabase) {
                     val next = withContext(Dispatchers.IO) { contentRepo.import(uri, current) }
                     pack = next
                     lessonId = ""
+                    reviewBatch = emptyList()
                     page = "Learn"
                     error = null
                     importStatus = context.getString(R.string.import_success)
@@ -97,11 +144,12 @@ fun AtharApp(db: LearningDatabase) {
         page = "Lesson"
     }
     val scroll = rememberScrollState()
-    LaunchedEffect(page, lessonId, questionIndex) { scroll.scrollTo(0) }
+    LaunchedEffect(page, lessonId, questionIndex, reviewIndex, reviewFeedback) { scroll.scrollTo(0) }
     BackHandler(page != "Today") {
         page = when (page) {
             "Quiz" -> "Lesson"
             "Lesson" -> "Learn"
+            "Review" -> if (reviewReturnToLesson) "Lesson" else "Today"
             else -> "Today"
         }
     }
@@ -130,11 +178,18 @@ fun AtharApp(db: LearningDatabase) {
                         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                         val lesson = active.lessons.firstOrNull { it.id == lessonId } ?: active.lessons.first()
+                        val eligible = eligibleStates()
+                        val dueCount = dueReviewCount(eligible, Instant.ofEpochMilli(nowMillis))
                         when (page) {
-                            "Today" -> TodayScreen(active, completions, ::openLesson)
+                            "Today" -> TodayScreen(active, completions, dueCount, ::openLesson) {
+                                startReviews()
+                            }
                             "Learn" -> CourseScreen(active, completions, bookmarks, ::openLesson)
                             "Lesson" -> LessonScreen(active, lesson,
                                 bookmarks.any { it.lessonId == lesson.id }, busy,
+                                lesson.prerequisiteConceptIds.count { concept ->
+                                    eligible.any { it.conceptId == concept }
+                                },
                                 onBookmark = {
                                     busy = true
                                     scope.launch {
@@ -148,6 +203,9 @@ fun AtharApp(db: LearningDatabase) {
                                 },
                                 onQuiz = {
                                     questionIndex = 0; selected = -1; feedback = false; page = "Quiz"
+                                },
+                                onQuickRecall = {
+                                    startReviews(lesson.prerequisiteConceptIds, true)
                                 })
                             "Quiz" -> QuizScreen(lesson, questionIndex, selected, feedback, busy,
                                 onSelect = { selected = it },
@@ -182,7 +240,64 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 })
                             "Done" -> DoneScreen { page = "Progress" }
-                            "Review" -> { Title(stringResource(R.string.nav_review)); Note(stringResource(R.string.nothing_due)) }
+                            "Review" -> {
+                                if (reviewBatch.isEmpty() || reviewIndex >= reviewBatch.size) {
+                                    ReviewOverview(dueCount, reviewFinished) { startReviews() }
+                                } else {
+                                    val state = reviewBatch[reviewIndex]
+                                    val sourceLesson = active.lessons.firstOrNull {
+                                        it.id == state.lessonId && it.version == state.lessonVersion
+                                    }
+                                    val sourceQuestion = sourceLesson?.questions?.firstOrNull {
+                                        it.id == state.questionId && it.version == state.questionVersion &&
+                                            it.conceptId == state.conceptId
+                                    }
+                                    fun advanceReview() {
+                                        if (reviewIndex + 1 < reviewBatch.size) {
+                                            reviewIndex++
+                                            reviewChoice = -1
+                                            reviewHinted = false
+                                            reviewRevealed = false
+                                            reviewFeedback = false
+                                            reviewSourceVisible = false
+                                        } else {
+                                            reviewBatch = emptyList()
+                                            reviewFinished = true
+                                            if (reviewReturnToLesson) page = "Lesson"
+                                        }
+                                    }
+                                    if (sourceLesson == null || sourceQuestion == null) {
+                                        Title(stringResource(R.string.nav_review))
+                                        Note(stringResource(R.string.review_unavailable))
+                                        Action(stringResource(R.string.review_next), click = ::advanceReview)
+                                    } else {
+                                        ReviewQuestionScreen(active, sourceLesson, sourceQuestion,
+                                            reviewIndex, reviewBatch.size, reviewChoice, reviewHinted,
+                                            reviewRevealed, reviewFeedback, busy, reviewWasDue,
+                                            reviewSourceVisible,
+                                            onSelect = { reviewChoice = it },
+                                            onHint = { reviewHinted = true },
+                                            onReveal = { reviewRevealed = true; reviewChoice = -1 },
+                                            onSubmit = {
+                                                busy = true
+                                                scope.launch {
+                                                    try {
+                                                        val result = reviews.submit(state, sourceQuestion,
+                                                            reviewSessionId, reviewChoice, reviewHinted,
+                                                            reviewRevealed)
+                                                        reviewWasDue = result.wasDue
+                                                        reviewFeedback = true
+                                                        error = null
+                                                    } catch (_: Exception) {
+                                                        error = context.getString(R.string.review_error)
+                                                    } finally { busy = false }
+                                                }
+                                            },
+                                            onSource = { reviewSourceVisible = !reviewSourceVisible },
+                                            onNext = ::advanceReview)
+                                    }
+                                }
+                            }
                             "Progress" -> ProgressScreen(active, completions, bookmarks)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
                                 onDirection = {

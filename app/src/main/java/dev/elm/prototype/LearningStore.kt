@@ -22,6 +22,11 @@ import java.time.*
     val answeredAt: Long, val kind: String
 )
 @Entity data class Bookmark(@PrimaryKey val lessonId: String, val createdAt: Long)
+@Entity data class ReviewState(
+    @PrimaryKey val conceptId: String, val lessonId: String, val lessonVersion: Int,
+    val questionId: String, val questionVersion: Int, val stage: Int,
+    val learnedAt: Long, val dueAt: Long, val lastReviewedAt: Long?
+)
 
 @Dao interface LearningDao {
     @Query("SELECT * FROM Completion") fun observeCompletions(): Flow<List<Completion>>
@@ -41,10 +46,18 @@ import java.time.*
     @Query("SELECT * FROM Bookmark") suspend fun bookmarks(): List<Bookmark>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertBookmark(value: Bookmark): Long
     @Query("DELETE FROM Bookmark WHERE lessonId=:lessonId") suspend fun deleteBookmark(lessonId: String): Int
+    @Query("SELECT * FROM ReviewState ORDER BY dueAt ASC, conceptId ASC")
+    fun observeReviewStates(): Flow<List<ReviewState>>
+    @Query("SELECT * FROM ReviewState ORDER BY dueAt ASC, conceptId ASC")
+    suspend fun reviewStates(): List<ReviewState>
+    @Query("SELECT * FROM ReviewState WHERE conceptId=:conceptId LIMIT 1")
+    suspend fun reviewState(conceptId: String): ReviewState?
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertReviewState(value: ReviewState): Long
+    @Update suspend fun updateReviewState(value: ReviewState): Int
 }
 
 @Database(entities = [Completion::class, Attempt::class, LessonCompletion::class,
-    AnswerEvent::class, Bookmark::class], version = 2, exportSchema = true)
+    AnswerEvent::class, Bookmark::class, ReviewState::class], version = 3, exportSchema = true)
 abstract class LearningDatabase : RoomDatabase() {
     abstract fun learningDao(): LearningDao
     companion object {
@@ -71,9 +84,20 @@ abstract class LearningDatabase : RoomDatabase() {
                     FROM Attempt""")
             }
         }
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS ReviewState (
+                    conceptId TEXT NOT NULL, lessonId TEXT NOT NULL, lessonVersion INTEGER NOT NULL,
+                    questionId TEXT NOT NULL, questionVersion INTEGER NOT NULL, stage INTEGER NOT NULL,
+                    learnedAt INTEGER NOT NULL, dueAt INTEGER NOT NULL, lastReviewedAt INTEGER,
+                    PRIMARY KEY(conceptId))""")
+                // Content-to-concept mapping lives in validated packs, not the v2 database.
+                // ReviewRepository seeds existing completed lessons after pack load.
+            }
+        }
         fun open(context: Context, name: String = "elm-learning.db") =
             Room.databaseBuilder(context, LearningDatabase::class.java, name)
-                .addMigrations(MIGRATION_1_2).build()
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }
 
@@ -105,10 +129,4 @@ class LearningRepository(private val dao: LearningDao, private val clock: Clock,
 
 fun studyDay(instant: Instant, zone: ZoneId): String = instant.atZone(zone).toLocalDate().toString()
 
-// Proposed defaults only; integration belongs to the spaced-review branch.
-data class ReviewDecision(val stage: Int, val due: Instant)
-fun nextReview(stage: Int, correct: Boolean, revealed: Boolean, now: Instant): ReviewDecision {
-    val intervals = listOf(1L, 3L, 7L, 14L, 30L)
-    val next = if (!correct || revealed) 0 else (stage + 1).coerceAtMost(4)
-    return ReviewDecision(next, now.plusSeconds(intervals[next] * 86400))
-}
+\n

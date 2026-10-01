@@ -75,4 +75,28 @@
     <string name="audio_source_note">This local recording is linked by its pack recording ID. Review metadata has not been independently authenticated.</string>
     <string name="ethiopic_sample">ሀ ሁ ሂ ሃ ሄ ህ ሆ</string>
     <string name="arabic_sample">ا ب ت ث ج ح خ</string>
+    <string name="due_count">%1$d reviews due</string>
+    <string name="review_empty">Nothing is due. Completed concepts will return here for practice.</string>
+    <string name="review_intro">A short recall batch, at your pace.</string>
+    <string name="review_catchup">There is more to revisit. Each batch stays short.</string>
+    <string name="start_review_batch">Start review batch</string>
+    <string name="review_progress">Review %1$d of %2$d</string>
+    <string name="show_hint">Show lesson note</string>
+    <string name="reveal_answer">Reveal answer</string>
+    <string name="revealed_answer">Answer: %1$s</string>
+    <string name="submit_review">Save review</string>
+    <string name="independent_recall">Independent recall saved</string>
+    <string name="assisted_recall">Practice saved; this did not advance recall.</string>
+    <string name="linked_recall">Optional recall saved; scheduled due date stays the same.</string>
+    <string name="review_next">Next review</string>
+    <string name="review_finish">Finish batch</string>
+    <string name="review_batch_done">Review batch complete</string>
+    <string name="review_error">Review could not be saved. Try again.</string>
+    <string name="review_source">Explanation and source metadata come from the active local content pack.</string>
+    <string name="replay_review_source">Replay source audio</string>
+    <string name="related_recall">Quick recall before this lesson</string>
+    <string name="related_recall_note">Optional check of a concept you already practiced. You can continue the lesson at any time.</string>
+    <string name="review_unavailable">This review question is unavailable in the active pack.</string>
 </resources>
+
+\n

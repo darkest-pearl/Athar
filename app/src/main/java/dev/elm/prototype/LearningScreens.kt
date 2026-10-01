@@ -11,12 +11,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 
 @Composable
-fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>, open: (PackLesson) -> Unit) {
+fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
+    dueCount: Int, open: (PackLesson) -> Unit, openReviews: () -> Unit) {
     val next = pack.lessons.firstOrNull { lesson ->
         completions.none { it.lessonId == lesson.id && it.version == lesson.version }
     } ?: pack.lessons.first()
     Title(stringResource(R.string.today_title))
     Note(stringResource(R.string.today_subtitle))
+    if (dueCount > 0) Panel {
+        Text(stringResource(R.string.due_count, dueCount), style = MaterialTheme.typography.titleLarge)
+        Note(stringResource(R.string.review_intro))
+        Action(stringResource(R.string.start_review_batch), click = openReviews)
+    }
     Panel {
         Text(stringResource(R.string.your_next_step), style = MaterialTheme.typography.labelLarge)
         Text(next.title, style = MaterialTheme.typography.headlineMedium)
@@ -46,11 +52,16 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
 
 @Composable
 fun LessonScreen(pack: ContentPack, lesson: PackLesson, bookmarked: Boolean, busy: Boolean,
-    onBookmark: () -> Unit, onQuiz: () -> Unit) {
+    relatedCount: Int, onBookmark: () -> Unit, onQuiz: () -> Unit,
+    onQuickRecall: () -> Unit) {
     Title(lesson.title)
     Note(lesson.notes)
     OutlinedButton(onClick = onBookmark, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(stringResource(if (bookmarked) R.string.bookmark_remove else R.string.bookmark_add))
+    }
+    if (relatedCount > 0) Panel {
+        Note(stringResource(R.string.related_recall_note))
+        Action(stringResource(R.string.related_recall), click = onQuickRecall)
     }
     androidx.compose.runtime.key(lesson.id) { AudioPanel(pack, lesson) }
     Action(stringResource(R.string.try_questions)) { onQuiz() }
