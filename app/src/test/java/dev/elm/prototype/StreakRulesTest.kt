@@ -22,6 +22,7 @@ class StreakRulesTest {
         val days = credits("2026-01-01", "2026-01-01", "2026-01-03", "2026-01-04")
         assertEquals(StreakStats(2, 2, 3), streakStats(days, LocalDate.parse("2026-01-05")))
         assertEquals(StreakStats(0, 0, 0), streakStats(emptyList(), LocalDate.parse("2026-01-05")))
+        assertEquals(StreakStats(1, 2, 3), streakStats(days, LocalDate.parse("2026-01-03")))
     }
 
     @Test fun pinnedZoneDeterminesStudyDayAtMidnight() {

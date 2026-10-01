@@ -19,11 +19,12 @@ fun streakStats(days: List<StudyDayCredit>, today: LocalDate): StreakStats {
         longest = maxOf(longest, run)
         previous = date
     }
-    val latest = dates.lastOrNull { it <= today } ?: return StreakStats(0, longest, dates.size)
+    val eligible = dates.filter { it <= today }
+    val latest = eligible.lastOrNull() ?: return StreakStats(0, longest, dates.size)
     var current = 0
     if (latest == today || latest == today.minusDays(1)) {
-        for (index in dates.indices.reversed()) {
-            if (dates[index] == latest.minusDays(current.toLong())) current++ else break
+        for (index in eligible.indices.reversed()) {
+            if (eligible[index] == latest.minusDays(current.toLong())) current++ else break
         }
     }
     return StreakStats(current, longest, dates.size)
