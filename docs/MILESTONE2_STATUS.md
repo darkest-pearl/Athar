@@ -1,0 +1,9 @@
+# Milestone 2 development status · 1 October 2026
+
+Athar now runs two explicitly neutral lessons from a validated portable pack. Offline local import, per-lesson progress and bookmarks, concept review, and meaningful study-day streaks are implemented. The original recordings remain outside Git; the bundled course is engineering content, not reviewed religious instruction.
+
+Merged task PRs: [#2 content validation](https://github.com/darkest-pearl/Athar/pull/2), [#3 audio selection](https://github.com/darkest-pearl/Athar/pull/3), [#4 content-driven lessons](https://github.com/darkest-pearl/Athar/pull/4), [#5 spaced review](https://github.com/darkest-pearl/Athar/pull/5), and [#6 study streaks](https://github.com/darkest-pearl/Athar/pull/6). Their latest PR checks and synchronized main checks passed before the next task. The provisional Garden learning-flow polish is the final bounded task branch; its merge and final CI result are reported in the handoff.
+
+Room uses explicit 1→2→3→4 migrations. Installed-app upgrades without data clear preserved original completion/attempt evidence, later answer events, bookmarks, and review state. Completion is unique by lesson/version; separate study sessions and unique date credits allow repeat participation without extra completion or day counts. Relevant test and emulator evidence lives in `evidence/milestone2-audio.md`, `evidence/milestone2-content.md`, `evidence/milestone2-review.md`, and `evidence/milestone2-streaks.md`.
+
+The debug APK remains a development artifact. Approved teaching content, reviewed Tigrinya wording, source-aligned lesson passages, and human language/religious approvals have not been supplied. Physical-device audible playback, TalkBack speech, headset/interruption handling, and broader hardware coverage remain pending. There is no account, cloud sync, hosted download, public publication, or iOS build in this milestone.

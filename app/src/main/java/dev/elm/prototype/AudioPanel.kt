@@ -34,6 +34,7 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
     var loadedKey by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var playing by remember { mutableStateOf(false) }
+    var controlsExpanded by remember { mutableStateOf(false) }
     var position by remember { mutableLongStateOf(0) }
     var duration by remember { mutableLongStateOf(0) }
     val player = remember { ExoPlayer.Builder(context).build().apply {
@@ -129,8 +130,6 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
             AudioSource.Representative -> R.string.representative_label
         }
         Text(context.getString(label), style = MaterialTheme.typography.titleMedium)
-        Note(context.getString(if (pack.developmentOnly) R.string.audio_test_note else R.string.audio_source_note))
-        Note(context.getString(R.string.recording_id, recording.id))
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
         Text("${position / 1000}s / ${duration / 1000}s")
         Action(context.getString(if (playing) R.string.pause_audio else R.string.play_audio),
@@ -142,21 +141,36 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson) {
             enabled = loadedKey != null, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
             Text(context.getString(R.string.replay_audio))
         }
-        TextButton(onClick = { source = AudioSource.Tone }) { Text(context.getString(R.string.use_tone)) }
-        if (imported != null) TextButton(onClick = { source = AudioSource.Document }) {
-            Text(context.getString(R.string.use_document))
-        }
-        if (representative.isFile) TextButton(onClick = { source = AudioSource.Representative }) {
-            Text(context.getString(R.string.use_representative))
-        }
         if (loadedKey == null && source != AudioSource.Tone)
-            TextButton(onClick = { revision++ }) { Text(context.getString(R.string.retry_recording)) }
-        TextButton(onClick = { picker.launch(arrayOf("audio/*")) }) {
+            TextButton(onClick = { revision++ }, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(context.getString(R.string.retry_recording))
+            }
+        TextButton(onClick = { picker.launch(arrayOf("audio/*")) },
+            modifier = Modifier.heightIn(min = 48.dp)) {
             Text(context.getString(R.string.select_recording))
         }
-        if (source != AudioSource.Tone) {
+        if (source != AudioSource.Tone)
             Note(context.getString(if (full) R.string.full_recording_label else R.string.technical_range_label))
-            TextButton(onClick = { full = !full }) {
+        TextButton(onClick = { controlsExpanded = !controlsExpanded },
+            modifier = Modifier.heightIn(min = 48.dp)) {
+            Text(context.getString(if (controlsExpanded) R.string.audio_hide_controls
+                else R.string.audio_more_controls))
+        }
+        if (controlsExpanded) {
+            Note(context.getString(if (pack.developmentOnly) R.string.audio_test_note else R.string.audio_source_note))
+            Note(context.getString(R.string.recording_id, recording.id))
+            TextButton(onClick = { source = AudioSource.Tone },
+                modifier = Modifier.heightIn(min = 48.dp)) { Text(context.getString(R.string.use_tone)) }
+            if (imported != null) TextButton(onClick = { source = AudioSource.Document },
+                modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(context.getString(R.string.use_document))
+            }
+            if (representative.isFile) TextButton(onClick = { source = AudioSource.Representative },
+                modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(context.getString(R.string.use_representative))
+            }
+            if (source != AudioSource.Tone) TextButton(onClick = { full = !full },
+                modifier = Modifier.heightIn(min = 48.dp)) {
                 Text(context.getString(if (full) R.string.technical_range else R.string.full_recording))
             }
         }

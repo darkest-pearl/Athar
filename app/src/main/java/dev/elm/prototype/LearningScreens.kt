@@ -2,13 +2,19 @@
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
 
 @Composable
 fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
@@ -18,7 +24,6 @@ fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
     } ?: pack.lessons.first()
     Title(stringResource(R.string.today_title))
     Note(stringResource(R.string.today_subtitle))
-    StreakPanel(streak, compact = true)
     if (dueCount > 0) Panel {
         Text(stringResource(R.string.due_count, dueCount), style = MaterialTheme.typography.titleLarge)
         Note(stringResource(R.string.review_intro))
@@ -27,10 +32,10 @@ fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
     Panel {
         Text(stringResource(R.string.your_next_step), style = MaterialTheme.typography.labelLarge)
         Text(next.title, style = MaterialTheme.typography.headlineMedium)
-        Note(next.notes)
         Action(stringResource(if (completions.any { it.lessonId == next.id && it.version == next.version })
             R.string.revisit_lesson else R.string.open_lesson)) { open(next) }
     }
+    StreakPanel(streak, compact = true)
 }
 
 @Composable
@@ -45,7 +50,8 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
             Text("${index + 1}. ${lesson.title}", style = MaterialTheme.typography.titleLarge)
             if (done) Text(stringResource(R.string.lesson_complete))
             if (bookmarks.any { it.lessonId == lesson.id }) Text(stringResource(R.string.bookmark_saved))
-            Note(lesson.notes)
+            Text(lesson.notes, style = MaterialTheme.typography.bodyLarge,
+                maxLines = 3, overflow = TextOverflow.Ellipsis)
             Action(stringResource(if (done) R.string.revisit_lesson else R.string.open_lesson)) { open(lesson) }
         }
     }
@@ -69,29 +75,27 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, bookmarked: Boolean, bus
 }
 
 @Composable
-fun QuizScreen(lesson: PackLesson, index: Int, selectedIndex: Int, feedback: Boolean, busy: Boolean,
+fun QuizScreen(pack: ContentPack, lesson: PackLesson, index: Int, selectedIndex: Int,
+    feedback: Boolean, busy: Boolean,
     onSelect: (Int) -> Unit, onCheck: () -> Unit, onNext: () -> Unit, onFinish: () -> Unit) {
     val question = lesson.questions[index]
     Title(lesson.title)
     Note(stringResource(R.string.question_progress, index + 1, lesson.questions.size))
     Note(question.prompt)
     question.choices.forEachIndexed { choiceIndex, choice ->
-        OutlinedButton(onClick = { onSelect(choiceIndex) }, enabled = !feedback && !busy,
-            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .semantics { selected = selectedIndex == choiceIndex }) {
-            Text(if (selectedIndex == choiceIndex) stringResource(R.string.selected_prefix, choice) else choice,
-                fontSize = 18.sp)
-        }
+        AnswerChoice(choice, selectedIndex == choiceIndex, choiceIndex == question.correctIndex,
+            feedback, busy) { onSelect(choiceIndex) }
     }
-    if (!feedback) {
-        Action(stringResource(R.string.check_answer), selectedIndex >= 0 && !busy, onCheck)
-    } else {
+    if (!feedback) Action(stringResource(R.string.check_answer), selectedIndex >= 0 && !busy, onCheck)
+    AnimatedVisibility(visible = feedback, enter = fadeIn(tween(180)), exit = fadeOut(tween(90))) {
         Panel {
             Text(stringResource(if (selectedIndex == question.correctIndex) R.string.correct_answer
                 else R.string.incorrect_answer), style = MaterialTheme.typography.titleLarge)
             Note(question.explanation)
-            Note(stringResource(R.string.source_fixture))
+            Note(stringResource(if (pack.developmentOnly) R.string.source_fixture else R.string.source_pack))
         }
+    }
+    if (feedback) {
         if (index + 1 < lesson.questions.size)
             Action(stringResource(R.string.next_question), !busy, onNext)
         else Action(stringResource(R.string.finish_lesson), !busy, onFinish)
@@ -149,9 +153,11 @@ fun SettingsScreen(pack: ContentPack, direction: Direction, importStatus: String
     Title(stringResource(R.string.settings_title))
     Note(pack.courseTitle)
     Note(stringResource(R.string.pack_version, pack.contentVersion))
-    Note(stringResource(R.string.development_label))
+    Note(stringResource(if (pack.developmentOnly) R.string.development_label
+        else R.string.local_pack_label))
     Action(stringResource(R.string.import_pack), click = onImport)
-    if (importStatus != null) Note(importStatus)
+    if (importStatus != null) Text(importStatus, style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
     Action(stringResource(if (direction == Direction.Garden) R.string.compare_editorial
         else R.string.use_garden), click = onDirection)
     Note(stringResource(R.string.pending_translation))
