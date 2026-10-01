@@ -63,32 +63,58 @@ enum class Direction { Garden, Editorial }
  var feedback by rememberSaveable { mutableStateOf(false) }
  var busy by remember { mutableStateOf(false) }
  var error by remember { mutableStateOf<String?>(null) }
- var imported by remember { mutableStateOf(prefs.getString("audio-uri",null)) }
- var sourceAudio by rememberSaveable { mutableStateOf(prefs.getBoolean("source-audio", false)) }
+ val sourceFile=File(context.filesDir,"representative.mp3")
+ val audioStore=remember { AudioResumeStore(prefs) }
+ var imported by remember { mutableStateOf(audioStore.documentUri()) }
+ var activeSource by rememberSaveable { mutableStateOf(audioStore.selected(sourceFile.exists())) }
  var fullRecording by rememberSaveable { mutableStateOf(prefs.getBoolean("full-recording", false)) }
+ val sourceAudio=activeSource != AudioSource.Tone
+ var loadedKey by remember { mutableStateOf<String?>(null) }
+ var selectionRevision by remember { mutableIntStateOf(0) }
  val player=remember { ExoPlayer.Builder(context).build().apply { setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_SPEECH).build(), true); setHandleAudioBecomingNoisy(true) } }
  var playing by remember { mutableStateOf(false) }
  var position by remember { mutableLongStateOf(0L) }
  var duration by remember { mutableLongStateOf(0L) }
- val sourceFile=File(context.filesDir,"representative.mp3")
- val sourceUri=if(sourceFile.exists()) Uri.fromFile(sourceFile) else imported?.let { Uri.parse(it) }
- val launcher=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) { try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); prefs.edit().putString("audio-uri",uri.toString()).commit(); imported=uri.toString(); sourceAudio=true; error=null } catch(e:Exception) { error="Audio access failed. Select the file again." } } }
+ val sourceUri=when(activeSource) {
+  AudioSource.Tone -> Uri.parse("asset:///neutral-tone.wav")
+  AudioSource.Document -> imported?.let(Uri::parse)
+  AudioSource.Representative -> if(sourceFile.exists()) Uri.fromFile(sourceFile) else null
+ }
+ val launcher=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if(uri!=null) { try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION); audioStore.chooseDocument(uri.toString()); imported=uri.toString(); activeSource=AudioSource.Document; selectionRevision++; error=null } catch(e:Exception) { error="Audio access failed. Select the file again." } } }
  DisposableEffect(player) { val listener=object: Player.Listener {
   override fun onIsPlayingChanged(value:Boolean) { playing=value }
-  override fun onPlayerError(e: PlaybackException) { error="Audio could not be opened. Re-select the original or use the bundled test tone." }
+  override fun onPlayerError(e: PlaybackException) { error="Audio could not be opened. Re-select the local recording or use the bundled test tone." }
  }; player.addListener(listener); onDispose { player.removeListener(listener); player.release() } }
- LaunchedEffect(sourceAudio, imported, fullRecording) {
-  val uri=if(sourceAudio) sourceUri else Uri.parse("asset:///neutral-tone.wav")
-  if(uri!=null) { val item=MediaItem.Builder().setUri(uri).apply { if(sourceAudio && !fullRecording) setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(0).setEndPositionMs(30000).build()) }.build()
-   val mediaKey=uri.toString()+":"+fullRecording
-   val resume=if(prefs.getString("media-key",null)==mediaKey) prefs.getLong("audio-position",0) else 0
-   player.setMediaItem(item); player.prepare(); player.seekTo(resume); error=null
-   prefs.edit().putString("media-key",mediaKey).putBoolean("source-audio",sourceAudio).putBoolean("full-recording",fullRecording).commit()
+ LaunchedEffect(activeSource, imported, fullRecording, selectionRevision) {
+  audioStore.save(loadedKey, player.currentPosition)
+  player.pause()
+  // Resolve only the explicit selection. A missing grant/file must never play another source.
+  val uri=sourceUri
+  val accessible=try {
+   when(activeSource) {
+    AudioSource.Tone -> true
+    AudioSource.Document -> uri!=null && context.contentResolver.openFileDescriptor(uri,"r")?.use { true } == true
+    AudioSource.Representative -> sourceFile.isFile
+   }
+  } catch(_:Exception) { false }
+  if(uri==null || !accessible) {
+   player.clearMediaItems(); loadedKey=null; position=0; duration=0
+   error="Selected recording is unavailable. Select the local recording again."
+  } else {
+   val item=MediaItem.Builder().setUri(uri).apply {
+    if(sourceAudio && !fullRecording) setClippingConfiguration(
+     MediaItem.ClippingConfiguration.Builder().setStartPositionMs(0).setEndPositionMs(30000).build())
+   }.build()
+   val key=audioStore.key(activeSource,uri.toString(),fullRecording)
+   val resume=audioStore.position(key,uri.toString()+":"+fullRecording)
+   player.setMediaItem(item); player.prepare(); player.seekTo(resume)
+   loadedKey=key; error=null; audioStore.select(activeSource)
+   prefs.edit().putBoolean("full-recording",fullRecording).commit()
   }
  }
  LaunchedEffect(player) { while(true) { position=player.currentPosition; duration=player.duration.coerceAtLeast(0); delay(500) } }
  DisposableEffect(Unit) { val owner=context as ComponentActivity
-  val obs=androidx.lifecycle.LifecycleEventObserver { _,event -> if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP) { prefs.edit().putLong("audio-position",player.currentPosition).commit(); player.pause() } }
+  val obs=androidx.lifecycle.LifecycleEventObserver { _,event -> if(event==androidx.lifecycle.Lifecycle.Event.ON_STOP) { audioStore.save(loadedKey,player.currentPosition); player.pause() } }
   owner.lifecycle.addObserver(obs); onDispose { owner.lifecycle.removeObserver(obs) }
  }
  val scroll=rememberScrollState()
@@ -109,14 +135,17 @@ enum class Direction { Garden, Editorial }
     "Lesson" -> {
      LessonHeader()
      Panel {
-      Text(if(sourceAudio) "Original recording · technical test" else "Bundled test tone · no speech",style=MaterialTheme.typography.titleMedium)
-      Note(if(sourceAudio) "Sheikh Abduselam Negash / Nawaqid al-Islam. No transcript or quiz is derived from this recording." else "A locally generated tone for offline player testing. No teaching content.")
+      Text(if(activeSource==AudioSource.Document) "Selected local recording · technical test" else if(activeSource==AudioSource.Representative) "Injected development file · technical test" else "Bundled test tone · no speech",style=MaterialTheme.typography.titleMedium)
+      Note(if(sourceAudio) "Local source for player testing. No transcript or quiz is derived from this recording." else "A locally generated tone for offline player testing. No teaching content.")
       Text("${position/1000}s / ${duration/1000}s")
-      Action(if(playing) "Pause audio" else "Play audio") { if(playing) { prefs.edit().putLong("audio-position",player.currentPosition).commit(); player.pause() } else { if(player.playbackState==Player.STATE_ENDED) player.seekTo(0); player.play() } }
+      Action(if(playing) "Pause audio" else "Play audio", loadedKey!=null) { if(playing) { audioStore.save(loadedKey,player.currentPosition); player.pause() } else { if(player.playbackState==Player.STATE_ENDED) player.seekTo(0); player.play() } }
       OutlinedButton(onClick={player.seekTo((player.currentPosition-10000).coerceAtLeast(0))},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)) { Text("Replay 10 seconds") }
-      if(sourceUri!=null) TextButton(onClick={sourceAudio=!sourceAudio; fullRecording=false}) { Text(if(sourceAudio) "Use test tone" else "Use original audio") }
+      TextButton(onClick={activeSource=AudioSource.Tone}) { Text("Use bundled test tone") }
+      if(imported!=null) TextButton(onClick={activeSource=AudioSource.Document}) { Text("Use selected local recording") }
+      if(sourceFile.isFile) TextButton(onClick={activeSource=AudioSource.Representative}) { Text("Development: use injected file") }
+      if(loadedKey==null && sourceAudio) TextButton(onClick={selectionRevision++}) { Text("Retry selected recording") }
       TextButton(onClick={launcher.launch(arrayOf("audio/*"))}) { Text("Select local recording") }
-      if(sourceAudio) { Note(if(fullRecording) "Full original recording" else "Technical range 00:00–00:30 · boundary unreviewed; not a study segment."); TextButton(onClick={fullRecording=!fullRecording}) { Text(if(fullRecording) "Test timestamp range" else "Open full original") } }
+      if(sourceAudio) { Note(if(fullRecording) "Full selected recording" else "Technical range 00:00–00:30 · boundary unreviewed; not a study segment."); TextButton(onClick={fullRecording=!fullRecording}) { Text(if(fullRecording) "Test timestamp range" else "Open full recording") } }
      }
      Note("Fixture note: Play starts audio. Pause stops it temporarily. Replay moves back ten seconds.")
      Action("Try practice questions") { q=0;selected=-1;feedback=false;page="Review" }
