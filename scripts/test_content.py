@@ -10,10 +10,10 @@ class ContentTests(unittest.TestCase):
   self.pack['permissions'][0]['status']='revoked'; self.assertTrue(validate(self.pack))
  def test_publication_requires_matching_reviews_and_passage(self):
   p=self.pack; p['developmentOnly']=False; p['segments'][0]['boundaryReviewed']=True
-  lesson=p['lessons'][0]; lesson['state']='approved'
+  p['lessons']=p['lessons'][:1]; lesson=p['lessons'][0]; lesson['state']='approved'
   for item in [lesson]+lesson['questions']:
    item['reviews']=[{'role':role,'reviewer':'test-reviewer','date':'2026-10-01','version':1,'result':'approved'} for role in ['language','religious']]
-  for q in lesson['questions']: q['sourceRef']={'segmentId':'tone-all','startMs':0,'endMs':1000,'contentVersion':1}
+  for q in lesson['questions']: q['sourceRef']={'segmentId':'tone-all','startMs':0,'endMs':1000,'contentVersion':p['contentVersion']}
   self.assertEqual([],validate(p,True)); lesson['questions'][0]['reviews'][0]['version']=0; self.assertTrue(validate(p,True))
 
 
@@ -58,5 +58,18 @@ class RegressionTests(unittest.TestCase):
  def test_malformed_input(self):
   self.assertTrue(validate(None))
   self.pack['lessons']=[42]; self.assertTrue(validate(self.pack))
+
+class SharedContractTests(unittest.TestCase):
+ def test_bundled_pack_matches_authoring_fixture(self):
+  authored=pathlib.Path('content/fixture-pack.json').read_bytes()
+  bundled=pathlib.Path('app/src/main/assets/fixture-pack.json').read_bytes()
+  self.assertEqual(authored,bundled)
+ def test_fixture_source_and_prerequisites_are_scoped(self):
+  pack=json.loads(pathlib.Path('content/fixture-pack.json').read_text(encoding='utf8'))
+  pack['lessons'][1]['questions'][0]['sourceRef']['lessonId']='controls-fixture'
+  self.assertTrue(any('fixture source lesson' in e for e in validate(pack)))
+  pack=json.loads(pathlib.Path('content/fixture-pack.json').read_text(encoding='utf8'))
+  pack['lessons'][1]['prerequisiteConceptIds']=['missing']
+  self.assertTrue(any('prerequisite' in e for e in validate(pack)))
 
 if __name__ == '__main__': unittest.main()

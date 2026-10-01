@@ -23,7 +23,7 @@ def validate(pack, publish=False):
         return value
 
     def nonblank(value, where):
-        return check(isinstance(value, str) and bool(value.strip()), f"{where}: nonblank string required")
+        return check(isinstance(value, str) and bool(value.strip()) and len(value) <= 4096, f"{where}: nonblank string required")
 
     def integer(value, where, minimum=0):
         return check(type(value) is int and value >= minimum, f"{where}: integer >= {minimum} required")
@@ -39,6 +39,11 @@ def validate(pack, publish=False):
         if not isinstance(value, list) or not value:
             errors.append(f"{where}.{key}: nonempty collection required")
             return []
+        maximum = 20 if key == "questions" else {
+            "permissions": 100, "recordings": 100, "segments": 500,
+            "concepts": 500, "lessons": 100
+        }.get(key, 100)
+        check(len(value) <= maximum, f"{where}.{key}: at most {maximum} items")
         return value
 
     def index(items, where):
@@ -101,7 +106,10 @@ def validate(pack, publish=False):
         check(member(permission.get("status"), {"authorized", "pending", "revoked"}),
               f"permissions.{pid}.status: invalid status")
     for rid, recording in recordings.items():
-        nonblank(recording.get("relativePath"), f"recordings.{rid}.relativePath")
+        path = recording.get("relativePath")
+        if nonblank(path, f"recordings.{rid}.relativePath"):
+            check(not path.startswith("/") and ".." not in path and "\\" not in path,
+                  f"recordings.{rid}.relativePath: unsafe path")
         integer(recording.get("durationMs"), f"recordings.{rid}.durationMs", 1)
         authorized(recording.get("permissionRef"), f"recordings.{rid}")
     for sid, segment in segments.items():
@@ -121,6 +129,17 @@ def validate(pack, publish=False):
         check(member(lesson.get("state"), STATES), f"{where}.state: invalid state")
         check(member(lesson.get("segmentRef"), segments), f"{where}: unknown source segment")
         authorized(lesson.get("permissionRef"), where)
+        if "notes" in lesson and lesson["notes"] is not None:
+            nonblank(lesson["notes"], f"{where}.notes")
+        prerequisites = lesson.get("prerequisiteConceptIds", [])
+        if not isinstance(prerequisites, list):
+            errors.append(f"{where}.prerequisiteConceptIds: array required")
+            prerequisites = []
+        check(len(prerequisites) <= 20, f"{where}.prerequisiteConceptIds: too many items")
+        if len([x for x in prerequisites if isinstance(x, str)]) != len(set(x for x in prerequisites if isinstance(x, str))):
+            errors.append(f"{where}.prerequisiteConceptIds: duplicate ID")
+        for ref_id in prerequisites:
+            check(member(ref_id, concepts), f"{where}: unknown prerequisite concept")
         if publish:
             check(member(lesson.get("state"), {"approved", "published"}), f"{where}: not approved")
             reviewed(lesson, where)
@@ -154,8 +173,18 @@ def validate(pack, publish=False):
                       f"{qwhere}: versioned source passage required")
                 reviewed(question, qwhere)
             else:
-                check(bool(ref) and (ref.get("kind") == "fixture-text" or member(ref.get("segmentId"), segments)),
-                      f"{qwhere}: source reference missing or invalid")
+                if ref.get("kind") == "fixture-text":
+                    check(ref.get("lessonId") == lid, f"{qwhere}: invalid fixture source lesson")
+                    integer(ref.get("contentVersion"), f"{qwhere}.sourceRef.contentVersion", 1)
+                    nonblank(ref.get("passage"), f"{qwhere}.sourceRef.passage")
+                else:
+                    segment = segments.get(ref.get("segmentId")) if isinstance(ref.get("segmentId"), str) else None
+                    check(segment is not None, f"{qwhere}: source reference missing or invalid")
+                    start, end = ref.get("startMs"), ref.get("endMs")
+                    if integer(start, f"{qwhere}.sourceRef.startMs") & integer(end, f"{qwhere}.sourceRef.endMs", 1) and segment:
+                        check(segment["startMs"] <= start < end <= segment["endMs"],
+                              f"{qwhere}: invalid source passage")
+                    integer(ref.get("contentVersion"), f"{qwhere}.sourceRef.contentVersion", 1)
     return errors
 
 

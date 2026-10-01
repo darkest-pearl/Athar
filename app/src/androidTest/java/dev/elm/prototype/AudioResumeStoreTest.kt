@@ -26,6 +26,9 @@ class AudioResumeStoreTest {
         assertEquals(AudioSource.Document, reopened.selected(true))
         assertEquals("content://local/one", reopened.documentUri())
         assertEquals(8500, reopened.position(documentA, "unused"))
+        assertEquals(8500, reopened.position(
+            reopened.key(AudioSource.Document, "content://local/one", false, "tone-all"),
+            "unused", documentA))
         assertEquals(17000, reopened.position(fullA, "unused"))
         assertEquals(0, reopened.position(documentB, "unused"))
         assertEquals(2400, reopened.position(injected, "unused"))

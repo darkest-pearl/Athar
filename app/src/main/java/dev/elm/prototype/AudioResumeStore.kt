@@ -8,31 +8,40 @@ enum class AudioSource { Tone, Document, Representative }
 /** Selection is independent of an injected representative file. Positions belong to a
  * recording identity and playback mode, so a full source never inherits a clipped offset. */
 class AudioResumeStore(private val prefs: SharedPreferences) {
-    fun selected(representativeExists: Boolean): AudioSource {
-        val saved = prefs.getString("active-audio-source", null)
+    fun selected(representativeExists: Boolean, recordingId: String = "tone"): AudioSource {
+        val saved = prefs.getString("active-audio-source-$recordingId", null)
+            ?: if (recordingId == "tone") prefs.getString("active-audio-source", null) else null
         if (saved != null) return AudioSource.entries.firstOrNull { it.name == saved } ?: AudioSource.Tone
-        // Migrate the prototype preference once. A selected document wins over test injection.
+        // Migrate the prototype preference only for its original tone recording.
+        if (recordingId != "tone") return AudioSource.Tone
         return if (prefs.getBoolean("source-audio", false)) {
-            if (documentUri() != null) AudioSource.Document
+            if (documentUri(recordingId) != null) AudioSource.Document
             else if (representativeExists) AudioSource.Representative
             else AudioSource.Tone
         } else AudioSource.Tone
     }
-    fun documentUri(): String? = prefs.getString("audio-uri", null)
-    fun select(source: AudioSource) {
-        prefs.edit().putString("active-audio-source", source.name).commit()
+    fun documentUri(recordingId: String = "tone"): String? =
+        prefs.getString("audio-uri-$recordingId", null)
+            ?: if (recordingId == "tone") prefs.getString("audio-uri", null) else null
+    fun select(source: AudioSource, recordingId: String = "tone") {
+        prefs.edit().putString("active-audio-source-$recordingId", source.name).commit()
     }
-    fun chooseDocument(uri: String) {
-        prefs.edit().putString("audio-uri", uri).putString("active-audio-source", AudioSource.Document.name).commit()
+    fun chooseDocument(uri: String, recordingId: String = "tone") {
+        prefs.edit().putString("audio-uri-$recordingId", uri)
+            .putString("active-audio-source-$recordingId", AudioSource.Document.name).commit()
     }
-    fun key(source: AudioSource, identity: String, full: Boolean): String {
+    fun key(source: AudioSource, identity: String, full: Boolean, scopeId: String = ""): String {
         val bytes = MessageDigest.getInstance("SHA-256")
-            .digest("${source.name}|$identity|${if (full) "full" else "range"}".toByteArray(Charsets.UTF_8))
+            .digest("${source.name}|$identity|${if (full) "full" else "range"}|$scopeId".toByteArray(Charsets.UTF_8))
         return bytes.joinToString("") { "%02x".format(it) }
     }
-    fun position(key: String, legacyMediaKey: String): Long {
+    fun position(key: String, legacyMediaKey: String, previousKey: String? = null): Long {
         val stored = prefs.getLong("resume-$key", Long.MIN_VALUE)
         if (stored != Long.MIN_VALUE) return stored.coerceAtLeast(0)
+        if (previousKey != null) {
+            val previous = prefs.getLong("resume-$previousKey", Long.MIN_VALUE)
+            if (previous != Long.MIN_VALUE) return previous.coerceAtLeast(0)
+        }
         // Preserve the old single-source offset only for the exact prior media key.
         return if (prefs.getString("media-key", null) == legacyMediaKey)
             prefs.getLong("audio-position", 0).coerceAtLeast(0) else 0
