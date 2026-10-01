@@ -1,7 +1,7 @@
-# Milestone 1 status · 1 October 2026
+﻿# Milestone 1 status · 1 October 2026
 
 ## Outcome
-First runnable Athar native Android prototype implemented and verified. App source commit c9a994ff779b998d12bfaed0addbf20696a67e12; CI setup fix 933f741. PR #1 (https://github.com/darkest-pearl/Athar/pull/1) merged as c49c015940c22a0c33d774a22319ca945c61600f; main CI run 36826407912 passed. Milestone 2 validator PR #2 merged as 7df1270; post-merge main CI run 36829085556 passed. The current milestone is continuing on separate task branches.
+First runnable Athar native Android prototype implemented and verified. App source commit c9a994ff779b998d12bfaed0addbf20696a67e12; CI setup fix 933f741. PR #1 (https://github.com/darkest-pearl/Athar/pull/1) merged as c49c015940c22a0c33d774a22319ca945c61600f; main CI run 36826407912 passed. Milestone 2 validator PR #2 merged as 7df1270; post-merge main CI run 36829085556 passed. Audio-selection PR #3 merged as 785f34c; post-merge main CI run 36832566251 passed. Content-driven lessons are in progress on a separate branch.
 
 Baseline main ff63889 was reviewed and pushed to darkest-pearl/Athar. The remote was initially empty. Configured Git identity was unchanged. No main protection or active branch rules reported by GitHub API. Workflow is persisted in AGENTS.md and Athar_Development_Cycle_Prompt.md. Athar is the confirmed name; original Elm briefs are preserved historical inputs. dev.elm.prototype remains a development package placeholder.
 
