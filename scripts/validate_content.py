@@ -1,52 +1,173 @@
-import argparse, datetime, json, pathlib
+import argparse
+import datetime
+import json
+import pathlib
+import re
+
+ID = re.compile(r"^[a-z][a-z0-9-]{0,63}$")
+STATES = {"draft", "in-review", "approved", "published"}
+
 
 def validate(pack, publish=False):
- errors=[]
- def check(ok,msg):
-  if not ok: errors.append(msg)
- check(pack.get('schemaVersion')==1,'Unsupported schema version')
- check(isinstance(pack.get('contentVersion'),int),'Missing content version')
- check(bool(pack.get('language')),'Missing language')
- if publish: check(not pack.get('developmentOnly',False),'Development fixtures cannot be published')
- permissions={p['id']:p for p in pack.get('permissions',[])}
- recordings={r['id']:r for r in pack.get('recordings',[])}
- segments={s['id']:s for s in pack.get('segments',[])}
- concepts={c['id'] for c in pack.get('concepts',[])}
- def authorized(ref): return permissions.get(ref,{}).get('status')=='authorized'
- def reviewed(item):
-  roles=set()
-  for r in item.get('reviews',[]):
-   try: datetime.date.fromisoformat(r.get('date',''))
-   except ValueError: continue
-   if r.get('reviewer') and r.get('version')==item.get('version') and r.get('result')=='approved': roles.add(r.get('role'))
-  return {'language','religious'}.issubset(roles)
- for r in recordings.values(): check(authorized(r.get('permissionRef')),'Recording lacks collection authorization: '+r['id'])
- for s in segments.values():
-  recording=recordings.get(s.get('recordingId'),{})
-  check(bool(recording),'Unknown segment recording: '+s['id'])
-  check(0<=s.get('startMs',-1)<s.get('endMs',-1)<=recording.get('durationMs',-1),'Invalid source timestamps: '+s['id'])
-  if publish: check(s.get('boundaryReviewed',False),'Segment boundary unreviewed: '+s['id'])
- for l in pack.get('lessons',[]):
-  check(bool(l.get('language')) and isinstance(l.get('version'),int),'Lesson language/version missing')
-  check(l.get('segmentRef') in segments,'Unknown lesson source segment')
-  check(authorized(l.get('permissionRef')),'Lesson authorization missing')
-  if publish: check(l.get('state') in ['approved','published'] and reviewed(l),'Lesson lacks reviews of current version')
-  for q in l.get('questions',[]):
-   check(q.get('conceptId') in concepts,'Unknown question concept')
-   check(isinstance(q.get('version'),int),'Question version missing')
-   check(0<=q.get('correctIndex',-1)<len(q.get('choices',[])),'Invalid answer index')
-   check(bool(q.get('explanation')),'Explanation missing')
-   ref=q.get('sourceRef',{})
-   if publish:
-    seg=segments.get(ref.get('segmentId'),{})
-    check(bool(seg) and seg.get('startMs',0)<=ref.get('startMs',-1)<ref.get('endMs',-1)<=seg.get('endMs',-1) and ref.get('contentVersion')==pack.get('contentVersion'),'Answer lacks versioned source passage')
-    check(reviewed(q),'Question lacks reviews of current version')
-   else: check(bool(ref),'Question source missing')
- check(bool(pack.get('lessons')),'No lessons')
- return errors
+    errors = []
 
-if __name__=='__main__':
- p=argparse.ArgumentParser(); p.add_argument('pack'); p.add_argument('--publish',action='store_true'); a=p.parse_args()
- errors=validate(json.loads(pathlib.Path(a.pack).read_text(encoding='utf8')),a.publish)
- print('\n'.join(errors) if errors else 'Content valid for '+('publication' if a.publish else 'development'))
- raise SystemExit(bool(errors))
+    def check(ok, message):
+        if not ok:
+            errors.append(message)
+        return ok
+
+    def obj(value, where):
+        if not isinstance(value, dict):
+            errors.append(f"{where}: expected object")
+            return {}
+        return value
+
+    def nonblank(value, where):
+        return check(isinstance(value, str) and bool(value.strip()), f"{where}: nonblank string required")
+
+    def integer(value, where, minimum=0):
+        return check(type(value) is int and value >= minimum, f"{where}: integer >= {minimum} required")
+
+    def identifier(value, where):
+        return check(isinstance(value, str) and bool(ID.fullmatch(value)), f"{where}: invalid stable ID")
+
+    def member(value, mapping):
+        return isinstance(value, str) and value in mapping
+
+    def collection(parent, key, where="pack"):
+        value = parent.get(key)
+        if not isinstance(value, list) or not value:
+            errors.append(f"{where}.{key}: nonempty collection required")
+            return []
+        return value
+
+    def index(items, where):
+        result = {}
+        for n, raw in enumerate(items):
+            item = obj(raw, f"{where}[{n}]")
+            value = item.get("id")
+            if identifier(value, f"{where}[{n}].id"):
+                if value in result:
+                    errors.append(f"{where}: duplicate ID {value}")
+                else:
+                    result[value] = item
+        return result
+
+    pack = obj(pack, "pack")
+    check(type(pack.get("schemaVersion")) is int and pack.get("schemaVersion") == 1,
+          "pack.schemaVersion: unsupported schema version (expected 1)")
+    integer(pack.get("contentVersion"), "pack.contentVersion", 1)
+    nonblank(pack.get("language"), "pack.language")
+    check(type(pack.get("developmentOnly")) is bool, "pack.developmentOnly: boolean required")
+    if publish:
+        check(pack.get("developmentOnly") is False, "Development fixtures cannot be published")
+    course = obj(pack.get("course"), "pack.course")
+    identifier(course.get("id"), "pack.course.id")
+    nonblank(course.get("title"), "pack.course.title")
+    permissions = index(collection(pack, "permissions"), "permissions")
+    recordings = index(collection(pack, "recordings"), "recordings")
+    segments = index(collection(pack, "segments"), "segments")
+    concepts = index(collection(pack, "concepts"), "concepts")
+    lessons = index(collection(pack, "lessons"), "lessons")
+
+    def authorized(ref, where):
+        check(member(ref, permissions) and permissions[ref].get("status") == "authorized",
+              f"{where}: collection authorization missing or revoked")
+
+    def reviewed(item, where):
+        roles = set()
+        reviews = item.get("reviews", [])
+        if not isinstance(reviews, list):
+            errors.append(f"{where}.reviews: collection required")
+            reviews = []
+        for n, raw in enumerate(reviews):
+            review = obj(raw, f"{where}.reviews[{n}]")
+            try:
+                date = review.get("date")
+                if not isinstance(date, str):
+                    raise ValueError()
+                datetime.date.fromisoformat(date)
+            except ValueError:
+                errors.append(f"{where}.reviews[{n}].date: invalid ISO date")
+                continue
+            if (nonblank(review.get("reviewer"), f"{where}.reviews[{n}].reviewer")
+                    and review.get("version") == item.get("version")
+                    and review.get("result") == "approved"):
+                roles.add(review.get("role")) if isinstance(review.get("role"), str) else None
+        check({"language", "religious"}.issubset(roles),
+              f"{where}: current-version language and religious reviews required")
+
+    for pid, permission in permissions.items():
+        check(member(permission.get("status"), {"authorized", "pending", "revoked"}),
+              f"permissions.{pid}.status: invalid status")
+    for rid, recording in recordings.items():
+        nonblank(recording.get("relativePath"), f"recordings.{rid}.relativePath")
+        integer(recording.get("durationMs"), f"recordings.{rid}.durationMs", 1)
+        authorized(recording.get("permissionRef"), f"recordings.{rid}")
+    for sid, segment in segments.items():
+        recording = recordings.get(segment.get("recordingId")) if isinstance(segment.get("recordingId"), str) else None
+        check(recording is not None, f"segments.{sid}: unknown recording")
+        start, end = segment.get("startMs"), segment.get("endMs")
+        valid = integer(start, f"segments.{sid}.startMs") & integer(end, f"segments.{sid}.endMs", 1)
+        if valid and recording and type(recording.get("durationMs")) is int:
+            check(start < end <= recording["durationMs"], f"segments.{sid}: invalid source timestamps")
+        if publish:
+            check(segment.get("boundaryReviewed") is True, f"segments.{sid}: boundary unreviewed")
+    for lid, lesson in lessons.items():
+        where = f"lessons.{lid}"
+        integer(lesson.get("version"), f"{where}.version", 1)
+        nonblank(lesson.get("title"), f"{where}.title")
+        nonblank(lesson.get("language"), f"{where}.language")
+        check(member(lesson.get("state"), STATES), f"{where}.state: invalid state")
+        check(member(lesson.get("segmentRef"), segments), f"{where}: unknown source segment")
+        authorized(lesson.get("permissionRef"), where)
+        if publish:
+            check(member(lesson.get("state"), {"approved", "published"}), f"{where}: not approved")
+            reviewed(lesson, where)
+        questions = index(collection(lesson, "questions", where), f"{where}.questions")
+        for qid, question in questions.items():
+            qwhere = f"{where}.questions.{qid}"
+            integer(question.get("version"), f"{qwhere}.version", 1)
+            nonblank(question.get("prompt"), f"{qwhere}.prompt")
+            nonblank(question.get("explanation"), f"{qwhere}.explanation")
+            check(member(question.get("conceptId"), concepts), f"{qwhere}: unknown concept")
+            choices = question.get("choices")
+            if not isinstance(choices, list) or not 2 <= len(choices) <= 6:
+                errors.append(f"{qwhere}.choices: 2-6 choices required")
+                choices = []
+            for n, choice in enumerate(choices):
+                nonblank(choice, f"{qwhere}.choices[{n}]")
+            strings = [x.strip() for x in choices if isinstance(x, str)]
+            if len(strings) != len(set(strings)):
+                errors.append(f"{qwhere}.choices: duplicate choices")
+            answer = question.get("correctIndex")
+            if integer(answer, f"{qwhere}.correctIndex"):
+                check(answer < len(choices), f"{qwhere}.correctIndex: out of range")
+            ref = obj(question.get("sourceRef"), f"{qwhere}.sourceRef")
+            if publish:
+                segment = segments.get(ref.get("segmentId")) if isinstance(ref.get("segmentId"), str) else None
+                start, end = ref.get("startMs"), ref.get("endMs")
+                valid = segment is not None and type(start) is int and type(end) is int
+                check(valid and type(segment.get("startMs")) is int and type(segment.get("endMs")) is int
+                      and segment["startMs"] <= start < end <= segment["endMs"]
+                      and ref.get("contentVersion") == pack.get("contentVersion"),
+                      f"{qwhere}: versioned source passage required")
+                reviewed(question, qwhere)
+            else:
+                check(bool(ref) and (ref.get("kind") == "fixture-text" or member(ref.get("segmentId"), segments)),
+                      f"{qwhere}: source reference missing or invalid")
+    return errors
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("pack")
+    parser.add_argument("--publish", action="store_true")
+    args = parser.parse_args()
+    try:
+        pack = json.loads(pathlib.Path(args.pack).read_text(encoding="utf8"))
+        errors = validate(pack, args.publish)
+    except (OSError, json.JSONDecodeError) as exc:
+        errors = [f"Unable to read content pack: {exc}"]
+    print("\n".join(errors) if errors else "Content valid for " + ("publication" if args.publish else "development"))
+    raise SystemExit(bool(errors))

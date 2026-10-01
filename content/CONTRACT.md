@@ -1,0 +1,14 @@
+﻿# Portable content contract (schema 1)
+
+The bundled pack and SAF imports use this same development-preview contract. Publication adds human editorial checks; JSON review metadata records a claim and does not authenticate an approver.
+
+- Root: object with schemaVersion exactly integer 1, positive integer contentVersion, nonblank language, boolean developmentOnly, course object, and nonempty permissions, recordings, segments, concepts, lessons arrays.
+- Each entity has a stable ID matching `[a-z][a-z0-9-]{0,63}`. IDs are unique within their own collection. Question IDs are unique within a lesson, so persistence identifies a question by (lesson ID, question ID, version).
+- Course requires ID and nonblank title. Permission status is authorized, pending, or revoked. Recordings require relativePath, positive durationMs, and an authorized permissionRef. Segments require a known recordingId and integer source start/end milliseconds with `0 <= start < end <= duration`.
+- Lessons require positive integer version, nonblank title/language, state draft/in-review/approved/published, known segmentRef, authorized permissionRef, and nonempty questions.
+- Questions require positive integer version, known conceptId, nonblank prompt/explanation, 2–6 nonblank distinct choices, integer correctIndex within choices, and a sourceRef. A development fixture may use `kind: fixture-text`; other references must name a known segment.
+- Null and booleans never stand in for integers. Optional notes, reviews, and speaker may be omitted; if reviews are supplied for publication they must form a list of dated review records.
+- Publication rejects developmentOnly packs, unreviewed segment boundaries, lessons outside approved/published, absent current-version language/religious review records, and questions without versioned source passages inside the referenced segment.
+- Runtime import additionally caps byte size and collection counts before activation. It rejects the entire candidate on any error, leaving the last working pack active. Stable IDs and versions must remain immutable; corrected teaching text requires a new version.
+
+The Python validator is the authoring gate. Android implements the same required-field and reference rules independently; positive and negative fixtures must be exercised on both paths before release.
