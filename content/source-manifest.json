@@ -1,0 +1,385 @@
+{
+  "schemaVersion": 1,
+  "collectionId": "nawaqid-al-islam",
+  "collectionTitle": "Nawaqid al-Islam",
+  "speaker": "Sheikh Abduselam Negash",
+  "permission": {
+    "id": "permission-nawaqid-2026-10-01",
+    "status": "authorized",
+    "reportedBy": "Musab Mohammed Ibrahim",
+    "reportedOn": "2026-10-01",
+    "source": "Elm_Project_Blueprint.md and user kickoff",
+    "scope": "Student-supplied collection; local intake and development",
+    "conditions": [
+      "Periodic Sheikh review",
+      "Sheikh review immediately before launch"
+    ],
+    "lessonApproval": "Not implied by source authorization"
+  },
+  "recordings": [
+    {
+      "id": "recording-Nawaqid_Al_Islam1",
+      "relativePath": "Nawaqid_Al_Islam1.mp3",
+      "format": "mp3",
+      "bytes": 45754244,
+      "sha256": "5ae47606760b0b8961e37a70d2e326dd33154d6d2b62076cbf000fef3789a669",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 1,
+      "durationSeconds": 2858.882,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam2",
+      "relativePath": "Nawaqid_Al_Islam2.mp3",
+      "format": "mp3",
+      "bytes": 47725279,
+      "sha256": "7354d2808cec1fcbac56bed8b5e513193503995f9527c9b3940b5d1ddf1287d9",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 2,
+      "durationSeconds": 2981.167,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam3",
+      "relativePath": "Nawaqid_Al_Islam3.mp3",
+      "format": "mp3",
+      "bytes": 46129450,
+      "sha256": "d47420380d01732a4cecebce3b777ddc99e84bf666a9c52f8c2cddaa45d9579f",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 3,
+      "durationSeconds": 2881.426,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam4",
+      "relativePath": "Nawaqid_Al_Islam4.mp3",
+      "format": "mp3",
+      "bytes": 43256476,
+      "sha256": "360d3c469908618f08d92b4c0f91d26886c2ceadf585722b4cd7f03a90d9b1f1",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 4,
+      "durationSeconds": 2702.767,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam5",
+      "relativePath": "Nawaqid_Al_Islam5.mp3",
+      "format": "mp3",
+      "bytes": 30838900,
+      "sha256": "ad996901563f7f84cc49e5d9d8c1496f2468c3ad874a2eac5242fc31a879b229",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 5,
+      "durationSeconds": 1925.975,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam6",
+      "relativePath": "Nawaqid_Al_Islam6.mp3",
+      "format": "mp3",
+      "bytes": 46399325,
+      "sha256": "f9d7ac73454e12b4e1de204e2013f554a628bb1e1f59a90cc68f26212be88afa",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 6,
+      "durationSeconds": 2898.497,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam7",
+      "relativePath": "Nawaqid_Al_Islam7.mp3",
+      "format": "mp3",
+      "bytes": 48103582,
+      "sha256": "d383070509db8cc2514cb7a93ad992073727b88adf80ab9510bef2c31ec1b1f0",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 7,
+      "durationSeconds": 3005.014,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam8",
+      "relativePath": "Nawaqid_Al_Islam8.mp3",
+      "format": "mp3",
+      "bytes": 46162534,
+      "sha256": "f0eade0fccf4c5d820e10aa908c9d76ef22d1eec973107959613aff01f1d023d",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 8,
+      "durationSeconds": 2884.527,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam9",
+      "relativePath": "Nawaqid_Al_Islam9.mp3",
+      "format": "mp3",
+      "bytes": 47730169,
+      "sha256": "b16870d25f431f8aa01144727b4e17934bb2d192ce4e47b0f93bcccdbb17a6ff",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 9,
+      "durationSeconds": 2981.688,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam10",
+      "relativePath": "Nawaqid_Al_Islam10.mp3",
+      "format": "mp3",
+      "bytes": 18149041,
+      "sha256": "ddd8c4fd14efbaae9ec56c4b0f40eeebf1a95dc4dfc47c594e7d7cb32faa0725",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 10,
+      "durationSeconds": 1132.867,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam11",
+      "relativePath": "Nawaqid_Al_Islam11.mp3",
+      "format": "mp3",
+      "bytes": 36607612,
+      "sha256": "954686a11aad1e96bd5c6b9d9aba56ad653a87125e5ecbb6bbc4c8f707e987a6",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 11,
+      "durationSeconds": 2287.435,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam12",
+      "relativePath": "Nawaqid_Al_Islam12.mp3",
+      "format": "mp3",
+      "bytes": 33948010,
+      "sha256": "879210c9623c8cd38fcd568f9830e5c201f5bfef67d2155179a716b2f9ea5d3a",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 12,
+      "durationSeconds": 2121.209,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam13",
+      "relativePath": "Nawaqid_Al_Islam13.mp3",
+      "format": "mp3",
+      "bytes": 36095475,
+      "sha256": "151c4b6dae437687f4e571726fb84050ba7acd5740f15fc53938a643a26b3b3f",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 13,
+      "durationSeconds": 2255.431,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam14",
+      "relativePath": "Nawaqid_Al_Islam14.mp3",
+      "format": "mp3",
+      "bytes": 41492288,
+      "sha256": "5287ebe3eef13b178e28afcfbc571eb94142f95e66c28a064a8ea199226d233f",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 14,
+      "durationSeconds": 2592.732,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam15",
+      "relativePath": "Nawaqid_Al_Islam15.mp3",
+      "format": "mp3",
+      "bytes": 30271043,
+      "sha256": "32ae42ebf427be54ec3f5da031bb9f34c0fd60d6cbabc6bf16564aa155e8281d",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 15,
+      "durationSeconds": 1891.39,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam16",
+      "relativePath": "Nawaqid_Al_Islam16.mp3",
+      "format": "mp3",
+      "bytes": 30038596,
+      "sha256": "34a50bf3ca11196ed4e7e6abc189f33546b506e6007d0d0669085a999d7599f2",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 16,
+      "durationSeconds": 1876.873,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam17",
+      "relativePath": "Nawaqid_Al_Islam17.mp3",
+      "format": "mp3",
+      "bytes": 40270110,
+      "sha256": "1615cecb3591e649dca787194e0c197ce5dd8dc139513333f4f63fb8f37d766f",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 17,
+      "durationSeconds": 2516.342,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam18",
+      "relativePath": "Nawaqid_Al_Islam18.mp3",
+      "format": "mp3",
+      "bytes": 36912844,
+      "sha256": "962f25f159d10a2e9d1240cc7435be442ddfe6aa6ca2706d15ee94c8cda19502",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 18,
+      "durationSeconds": 2306.513,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam19",
+      "relativePath": "Nawaqid_Al_Islam19.mp3",
+      "format": "mp3",
+      "bytes": 33246566,
+      "sha256": "0f821203d9716534b9aecbda3f804b1cb36ca0c92e77c9a1e06ed87e9d7c219f",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 19,
+      "durationSeconds": 2077.372,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam_20",
+      "relativePath": "Nawaqid_Al_Islam_20.mp3",
+      "format": "mp3",
+      "bytes": 38339984,
+      "sha256": "8370ada42cb956771767f834b0479ab966b986974a090aa24ec7f5e2c061ec97",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 20,
+      "durationSeconds": 2395.699,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    },
+    {
+      "id": "recording-Nawaqid_Al_Islam_21",
+      "relativePath": "Nawaqid_Al_Islam_21.mp3",
+      "format": "mp3",
+      "bytes": 26113549,
+      "sha256": "24973906d59dd96c5c4255ecad3e9a6c482ab667910df361599bb05882df8636",
+      "permissionRef": "permission-nawaqid-2026-10-01",
+      "sourceOrder": null,
+      "issues": [
+        "Source order and original title require reviewer confirmation."
+      ],
+      "filenameOrderHint": 21,
+      "durationSeconds": 1631.547,
+      "bitrate": 128000,
+      "sampleRate": 44100,
+      "channels": 2
+    }
+  ],
+  "totalBytes": 803585077,
+  "totalDurationSeconds": 50205.353,
+  "issues": [
+    "Filename sequence is a hint, not confirmed lesson order.",
+    "Collection completeness is reported by Musab, not independently established.",
+    "Source owner, original titles and publication links not supplied."
+  ]
+}

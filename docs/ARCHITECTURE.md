@@ -1,0 +1,14 @@
+# Architecture decisions
+Confirmed Android stack: Kotlin + Compose; Room for local completion and versioned attempts; Media3 ExoPlayer for bundled/local document audio. Single app, no server or account infrastructure. iPhone follows Android launch.
+
+Development ID dev.elm.prototype is a placeholder; label Athar · prototype is a development label. Target/compile SDK 35, min SDK 26. Pinned conservative build: AGP 8.6.1, Gradle 8.10.2, JDK 17, Kotlin 1.9.24 + Compose compiler 1.5.14, Compose UI 1.6.8, Material3 1.2.1, Activity 1.9.2, Room 2.6.1, Media3 1.4.1, coroutines 1.8.1. Existing cached AGP/Kotlin/wrapper motivated this stable baseline. Upgrade/recheck Play target requirements before release; this demo is not a publication build. Official compatibility: https://developer.android.com/build/releases/agp-8-6-0-release-notes and https://developer.android.com/jetpack/androidx/releases/compose-kotlin. Room/Media3 release references: https://developer.android.com/jetpack/androidx/releases/room and https://developer.android.com/jetpack/androidx/releases/media3.
+
+Room drives the completion UI via Flow. Completion lesson ID is unique; INSERT IGNORE makes repeated finish idempotent. First attempt per versioned fixture question is unique; replay cannot overwrite incorrect evidence. No mastery or rewards computed. Completion awaits storage before success UI. UI survives ordinary configuration changes via rememberSaveable; committed actions survive process death. Unsubmitted quiz state is not guaranteed after force-stop.
+
+Study timezone is pinned to device zone at first use and persisted. UTC timestamps plus local study day and zone stored on completion; injected Clock/ZoneId allow midnight tests. Proposed nextReview function has unit tests but is not integrated into UI; default intervals 1/3/7/14/30 days. Future immediate retry/reveal tracking needs distinct attempt events and later recall evidence.
+
+Audio sources: 12s neutral tone in assets, read-only document URI permission, or debug-only private representative.mp3 used by verification. Technical clipping range 0–30s explicitly unreviewed. Full original available. Position preferences saved on pause/background; no background service yet. Quiz navigation does not pause audio; backgrounding does. No INTERNET permission, telemetry or secret credentials.
+
+Guest storage has no backup/sync; allowBackup=false. App removal/data clear removes progress. Future repositories can synchronize approved packs and per-user events without making UI depend on a network. Download, bookmark, concept review state and daily-study/streak tables remain milestone 2; content/publication metadata remains independent of presentation.
+
+Production work still requires reviewed content, a real Tigrinya localization, audio focus/interruption checks, scoped publishing/auth rules if added, migration/backup design and prelaunch Sheikh review.
