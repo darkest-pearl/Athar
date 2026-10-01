@@ -12,12 +12,13 @@ import androidx.compose.ui.res.stringResource
 
 @Composable
 fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
-    dueCount: Int, open: (PackLesson) -> Unit, openReviews: () -> Unit) {
+    dueCount: Int, streak: StreakStats, open: (PackLesson) -> Unit, openReviews: () -> Unit) {
     val next = pack.lessons.firstOrNull { lesson ->
         completions.none { it.lessonId == lesson.id && it.version == lesson.version }
     } ?: pack.lessons.first()
     Title(stringResource(R.string.today_title))
     Note(stringResource(R.string.today_subtitle))
+    StreakPanel(streak, compact = true)
     if (dueCount > 0) Panel {
         Text(stringResource(R.string.due_count, dueCount), style = MaterialTheme.typography.titleLarge)
         Note(stringResource(R.string.review_intro))
@@ -98,18 +99,21 @@ fun QuizScreen(lesson: PackLesson, index: Int, selectedIndex: Int, feedback: Boo
 }
 
 @Composable
-fun DoneScreen(openProgress: () -> Unit) {
+fun DoneScreen(streak: StreakStats, openProgress: () -> Unit) {
     Title(stringResource(R.string.completion_saved))
     Panel { Note(stringResource(R.string.completion_note)) }
+    StreakPanel(streak, compact = true)
     Action(stringResource(R.string.see_progress), click = openProgress)
 }
 
 @Composable
-fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmarks: List<Bookmark>) {
+fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmarks: List<Bookmark>,
+    streak: StreakStats) {
     val current = completions.filter { completion ->
         pack.lessons.any { it.id == completion.lessonId && it.version == completion.version }
     }
     Title(stringResource(R.string.progress_title))
+    StreakPanel(streak)
     Panel {
         Text(stringResource(R.string.progress_count, current.size), style = MaterialTheme.typography.headlineMedium)
         current.forEach { completion ->
@@ -124,6 +128,19 @@ fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookm
         Note(title)
     }
     Note(stringResource(R.string.progress_guest))
+}
+
+@Composable
+fun StreakPanel(streak: StreakStats, compact: Boolean = false) {
+    Panel {
+        Text(stringResource(R.string.streak_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.streak_current, streak.current))
+        if (!compact) {
+            Text(stringResource(R.string.streak_longest, streak.longest))
+            Text(stringResource(R.string.streak_total, streak.totalDays))
+            Note(stringResource(R.string.streak_note))
+        }
+    }
 }
 
 @Composable

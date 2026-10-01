@@ -54,6 +54,9 @@ fun AtharApp(db: LearningDatabase) {
             ?: ZoneId.systemDefault().id.also { prefs.edit().putString("study-zone", it).commit() })
     }
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
+    val study = remember(db, zone) { StudyRepository(db, dao, Clock.systemUTC(), zone) }
+    val studyDays by remember(dao) { dao.observeStudyDays() }
+        .collectAsState(initial = emptyList())
     val reviewClock = remember { Clock.systemUTC() }
     val reviews = remember(db) { ReviewRepository(db, dao, reviewClock) }
     val contentRepo = remember { ContentRepository(context) }
@@ -81,6 +84,7 @@ fun AtharApp(db: LearningDatabase) {
     var error by remember { mutableStateOf<String?>(null) }
     var importStatus by remember { mutableStateOf<String?>(null) }
     var reviewBatch by remember { mutableStateOf<List<ReviewState>>(emptyList()) }
+    var reviewDueItems by remember { mutableStateOf<List<ReviewState>>(emptyList()) }
     var reviewIndex by remember { mutableIntStateOf(0) }
     var reviewChoice by remember { mutableIntStateOf(-1) }
     var reviewHinted by remember { mutableStateOf(false) }
@@ -104,6 +108,7 @@ fun AtharApp(db: LearningDatabase) {
     fun startReviews(related: List<String> = emptyList(), returnToLesson: Boolean = false) {
         val batch = selectReviewBatch(eligibleStates(), Instant.ofEpochMilli(nowMillis), related)
         reviewBatch = batch
+        reviewDueItems = batch.filter { it.dueAt <= nowMillis }
         reviewIndex = 0
         reviewChoice = -1
         reviewHinted = false
@@ -125,6 +130,7 @@ fun AtharApp(db: LearningDatabase) {
                     pack = next
                     lessonId = ""
                     reviewBatch = emptyList()
+                    reviewDueItems = emptyList()
                     page = "Learn"
                     error = null
                     importStatus = context.getString(R.string.import_success)
@@ -180,8 +186,10 @@ fun AtharApp(db: LearningDatabase) {
                         val lesson = active.lessons.firstOrNull { it.id == lessonId } ?: active.lessons.first()
                         val eligible = eligibleStates()
                         val dueCount = dueReviewCount(eligible, Instant.ofEpochMilli(nowMillis))
+                        val streak = streakStats(studyDays,
+                            Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate())
                         when (page) {
-                            "Today" -> TodayScreen(active, completions, dueCount, ::openLesson) {
+                            "Today" -> TodayScreen(active, completions, dueCount, streak, ::openLesson) {
                                 startReviews()
                             }
                             "Learn" -> CourseScreen(active, completions, bookmarks, ::openLesson)
@@ -231,7 +239,7 @@ fun AtharApp(db: LearningDatabase) {
                                     busy = true
                                     scope.launch {
                                         try {
-                                            repo.completeLesson(lesson, sessionId)
+                                            study.completeLesson(lesson, sessionId)
                                             page = "Done"
                                             error = null
                                         } catch (_: Exception) {
@@ -239,7 +247,7 @@ fun AtharApp(db: LearningDatabase) {
                                         } finally { busy = false }
                                     }
                                 })
-                            "Done" -> DoneScreen { page = "Progress" }
+                            "Done" -> DoneScreen(streak) { page = "Progress" }
                             "Review" -> {
                                 if (reviewBatch.isEmpty() || reviewIndex >= reviewBatch.size) {
                                     ReviewOverview(dueCount, reviewFinished) { startReviews() }
@@ -261,9 +269,20 @@ fun AtharApp(db: LearningDatabase) {
                                             reviewFeedback = false
                                             reviewSourceVisible = false
                                         } else {
-                                            reviewBatch = emptyList()
-                                            reviewFinished = true
-                                            if (reviewReturnToLesson) page = "Lesson"
+                                            busy = true
+                                            scope.launch {
+                                                try {
+                                                    if (reviewDueItems.isNotEmpty())
+                                                        study.completeDueReviewBatch(reviewDueItems, reviewSessionId)
+                                                    reviewBatch = emptyList()
+                                                    reviewDueItems = emptyList()
+                                                    reviewFinished = true
+                                                    error = null
+                                                    if (reviewReturnToLesson) page = "Lesson"
+                                                } catch (_: Exception) {
+                                                    error = context.getString(R.string.study_save_failed)
+                                                } finally { busy = false }
+                                            }
                                         }
                                     }
                                     if (sourceLesson == null || sourceQuestion == null) {
@@ -298,7 +317,7 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 }
                             }
-                            "Progress" -> ProgressScreen(active, completions, bookmarks)
+                            "Progress" -> ProgressScreen(active, completions, bookmarks, streak)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
                                 onDirection = {
                                     direction = if (direction == Direction.Garden) Direction.Editorial
