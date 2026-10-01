@@ -101,6 +101,7 @@ fun AtharApp(db: LearningDatabase) {
     fun eligibleStates(): List<ReviewState> {
         val current = pack ?: return emptyList()
         return reviewStates.filter { state ->
+            state.courseId == current.courseId &&
             current.lessons.any { lesson ->
                 lesson.id == state.lessonId && lesson.version == state.lessonVersion &&
                     lesson.questions.any { it.id == state.questionId &&
@@ -194,12 +195,13 @@ fun AtharApp(db: LearningDatabase) {
                         val streak = streakStats(studyDays,
                             Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate())
                         when (page) {
-                            "Today" -> TodayScreen(active, completions, dueCount, streak, ::openLesson) {
+                            "Today" -> TodayScreen(active, completions.filter { it.courseId == active.courseId }, dueCount, streak, ::openLesson) {
                                 startReviews()
                             }
-                            "Learn" -> CourseScreen(active, completions, bookmarks, ::openLesson)
+                            "Learn" -> CourseScreen(active, completions.filter { it.courseId == active.courseId },
+                                bookmarks.filter { it.courseId == active.courseId }, ::openLesson)
                             "Lesson" -> LessonScreen(active, lesson,
-                                bookmarks.any { it.lessonId == lesson.id }, busy,
+                                bookmarks.any { it.courseId == active.courseId && it.lessonId == lesson.id }, busy,
                                 lesson.prerequisiteConceptIds.count { concept ->
                                     eligible.any { it.conceptId == concept }
                                 },
@@ -207,8 +209,9 @@ fun AtharApp(db: LearningDatabase) {
                                     busy = true
                                     scope.launch {
                                         try {
-                                            if (bookmarks.any { it.lessonId == lesson.id }) repo.unbookmark(lesson.id)
-                                            else repo.bookmark(lesson.id)
+                                            if (bookmarks.any { it.courseId == active.courseId && it.lessonId == lesson.id })
+                                                repo.unbookmark(lesson.id, active.courseId)
+                                            else repo.bookmark(lesson.id, active.courseId)
                                         } catch (_: Exception) {
                                             error = context.getString(R.string.bookmark_failed)
                                         } finally { busy = false }
@@ -227,7 +230,8 @@ fun AtharApp(db: LearningDatabase) {
                                     val question = lesson.questions[questionIndex]
                                     scope.launch {
                                         try {
-                                            repo.submitLessonAnswer(lesson, question, sessionId, selected)
+                                            repo.submitLessonAnswer(lesson, question, sessionId, selected,
+                                                courseId = active.courseId)
                                             feedback = true
                                             error = null
                                         } catch (_: Exception) {
@@ -244,7 +248,7 @@ fun AtharApp(db: LearningDatabase) {
                                     busy = true
                                     scope.launch {
                                         try {
-                                            study.completeLesson(lesson, sessionId)
+                                            study.completeLesson(lesson, sessionId, active.courseId)
                                             page = "Done"
                                             error = null
                                         } catch (_: Exception) {
@@ -278,7 +282,8 @@ fun AtharApp(db: LearningDatabase) {
                                             scope.launch {
                                                 try {
                                                     if (reviewDueItems.isNotEmpty())
-                                                        study.completeDueReviewBatch(reviewDueItems, reviewSessionId)
+                                                        study.completeDueReviewBatch(reviewDueItems, reviewSessionId,
+                                                            active.courseId)
                                                     reviewBatch = emptyList()
                                                     reviewDueItems = emptyList()
                                                     reviewFinished = true
@@ -322,7 +327,9 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 }
                             }
-                            "Progress" -> ProgressScreen(active, completions, bookmarks, streak)
+                            "Progress" -> ProgressScreen(active,
+                                completions.filter { it.courseId == active.courseId },
+                                bookmarks.filter { it.courseId == active.courseId }, streak)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
                                 onDirection = {
                                     direction = if (direction == Direction.Garden) Direction.Editorial

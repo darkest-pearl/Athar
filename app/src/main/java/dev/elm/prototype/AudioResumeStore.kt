@@ -8,12 +8,18 @@ enum class AudioSource { Tone, Document, Representative }
 /** Selection is independent of an injected representative file. Positions belong to a
  * recording identity and playback mode, so a full source never inherits a clipped offset. */
 class AudioResumeStore(private val prefs: SharedPreferences) {
+    private fun legacyId(recordingId: String): String? =
+        recordingId.removePrefix("controls-course:").takeIf {
+            recordingId.startsWith("controls-course:")
+        }
     fun selected(representativeExists: Boolean, recordingId: String = "tone"): AudioSource {
         val saved = prefs.getString("active-audio-source-$recordingId", null)
-            ?: if (recordingId == "tone") prefs.getString("active-audio-source", null) else null
+            ?: legacyId(recordingId)?.let { prefs.getString("active-audio-source-$it", null) }
+            ?: if (recordingId == "tone" || recordingId == "controls-course:tone")
+                prefs.getString("active-audio-source", null) else null
         if (saved != null) return AudioSource.entries.firstOrNull { it.name == saved } ?: AudioSource.Tone
         // Migrate the prototype preference only for its original tone recording.
-        if (recordingId != "tone") return AudioSource.Tone
+        if (recordingId != "tone" && recordingId != "controls-course:tone") return AudioSource.Tone
         return if (prefs.getBoolean("source-audio", false)) {
             if (documentUri(recordingId) != null) AudioSource.Document
             else if (representativeExists) AudioSource.Representative
@@ -22,7 +28,9 @@ class AudioResumeStore(private val prefs: SharedPreferences) {
     }
     fun documentUri(recordingId: String = "tone"): String? =
         prefs.getString("audio-uri-$recordingId", null)
-            ?: if (recordingId == "tone") prefs.getString("audio-uri", null) else null
+            ?: legacyId(recordingId)?.let { prefs.getString("audio-uri-$it", null) }
+            ?: if (recordingId == "tone" || recordingId == "controls-course:tone")
+                prefs.getString("audio-uri", null) else null
     fun select(source: AudioSource, recordingId: String = "tone") {
         prefs.edit().putString("active-audio-source-$recordingId", source.name).commit()
     }

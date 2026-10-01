@@ -58,6 +58,29 @@ class ContentAndMigrationTest {
         assertEquals(initial.canonicalJson, repo.load().canonicalJson)
         File(sandbox, "active-pack.json").delete()
         File(sandbox, "active-pack.json.bak").delete()
+        File(sandbox, "content-identity-ledger.json").delete()
+        File(sandbox, "content-identity-ledger.json.bak").delete()
+        sandbox.delete()
+    }
+
+    @Test fun switchingAwayAndBackRejectsRewrittenAcceptedIdentity() {
+        val sandbox = File(context.cacheDir, "identity-ledger-test")
+        sandbox.mkdirs()
+        val wrapped = object : ContextWrapper(context) { override fun getFilesDir(): File = sandbox }
+        val repo = ContentRepository(wrapped)
+        val raw = fixture().toString(Charsets.UTF_8)
+        val original = ContentPackParser.parse(raw.toByteArray())
+        val other = repo.importBytes(raw.replace("controls-course", "second-course")
+            .replace("App controls", "Other controls").toByteArray(), original)
+        assertEquals("second-course", other.courseId)
+        val changed = raw.replace("Learn the controls", "Silent rewrite")
+        assertTrue(runCatching { repo.importBytes(changed.toByteArray(), other) }.isFailure)
+        assertEquals(original.canonicalJson, repo.importBytes(fixture(), other).canonicalJson)
+        assertEquals(original.canonicalJson, repo.load().canonicalJson)
+        File(sandbox, "active-pack.json").delete()
+        File(sandbox, "active-pack.json.bak").delete()
+        File(sandbox, "content-identity-ledger.json").delete()
+        File(sandbox, "content-identity-ledger.json.bak").delete()
         sandbox.delete()
     }
 
@@ -82,6 +105,40 @@ class ContentAndMigrationTest {
         val reopened = LearningDatabase.open(context, name)
         assertEquals(2, reopened.learningDao().answerEvents().size)
         reopened.close()
+        context.deleteDatabase(name)
+        Unit
+    }
+
+    @Test fun versionFourUpgradePreservesKnownAndUnattributedEvidence() = runBlocking {
+        val name = "migration-v4-verification.db"
+        context.deleteDatabase(name)
+        val old = context.openOrCreateDatabase(name, Context.MODE_PRIVATE, null)
+        old.execSQL("CREATE TABLE Completion (lessonId TEXT NOT NULL, version INTEGER NOT NULL, completedAt INTEGER NOT NULL, studyDay TEXT NOT NULL, studyZone TEXT NOT NULL, PRIMARY KEY(lessonId))")
+        old.execSQL("CREATE TABLE Attempt (id TEXT NOT NULL, questionId TEXT NOT NULL, questionVersion INTEGER NOT NULL, selected INTEGER NOT NULL, correct INTEGER NOT NULL, attemptedAt INTEGER NOT NULL, PRIMARY KEY(id))")
+        old.execSQL("CREATE TABLE LessonCompletion (`key` TEXT NOT NULL, lessonId TEXT NOT NULL, version INTEGER NOT NULL, completedAt INTEGER NOT NULL, studyDay TEXT NOT NULL, studyZone TEXT NOT NULL, sessionId TEXT NOT NULL, PRIMARY KEY(`key`))")
+        old.execSQL("CREATE TABLE AnswerEvent (id TEXT NOT NULL, lessonId TEXT NOT NULL, questionId TEXT NOT NULL, questionVersion INTEGER NOT NULL, sessionId TEXT NOT NULL, selected INTEGER NOT NULL, correct INTEGER NOT NULL, hinted INTEGER NOT NULL, revealed INTEGER NOT NULL, answeredAt INTEGER NOT NULL, kind TEXT NOT NULL, PRIMARY KEY(id))")
+        old.execSQL("CREATE TABLE Bookmark (lessonId TEXT NOT NULL, createdAt INTEGER NOT NULL, PRIMARY KEY(lessonId))")
+        old.execSQL("CREATE TABLE ReviewState (conceptId TEXT NOT NULL, lessonId TEXT NOT NULL, lessonVersion INTEGER NOT NULL, questionId TEXT NOT NULL, questionVersion INTEGER NOT NULL, stage INTEGER NOT NULL, learnedAt INTEGER NOT NULL, dueAt INTEGER NOT NULL, lastReviewedAt INTEGER, PRIMARY KEY(conceptId))")
+        old.execSQL("CREATE TABLE StudySession (id TEXT NOT NULL, kind TEXT NOT NULL, reference TEXT NOT NULL, completedAt INTEGER NOT NULL, studyDay TEXT NOT NULL, studyZone TEXT NOT NULL, PRIMARY KEY(id))")
+        old.execSQL("CREATE TABLE StudyDayCredit (studyDay TEXT NOT NULL, firstAt INTEGER NOT NULL, studyZone TEXT NOT NULL, PRIMARY KEY(studyDay))")
+        old.execSQL("INSERT INTO LessonCompletion VALUES ('controls-fixture:v1','controls-fixture',1,1000,'2026-10-01','UTC','known')")
+        old.execSQL("INSERT INTO LessonCompletion VALUES ('other:v1','other',1,2000,'2026-10-01','UTC','unknown')")
+        old.execSQL("INSERT INTO AnswerEvent VALUES ('known-answer','controls-fixture','q0',1,'known',0,1,0,0,900,'lesson')")
+        old.execSQL("INSERT INTO AnswerEvent VALUES ('unknown-answer','other','q0',1,'unknown',0,1,0,0,1900,'lesson')")
+        old.execSQL("INSERT INTO Bookmark VALUES ('controls-fixture',1000)")
+        old.execSQL("INSERT INTO ReviewState VALUES ('pause-control','controls-fixture',1,'q0',1,1,1000,2000,1500)")
+        old.version = 4
+        old.close()
+        val upgraded = LearningDatabase.open(context, name)
+        val dao = upgraded.learningDao()
+        assertEquals(setOf("controls-course", LearningDatabase.LEGACY_UNATTRIBUTED),
+            dao.lessonCompletions().map { it.courseId }.toSet())
+        assertEquals(2, dao.answerEvents().size)
+        assertEquals(LearningDatabase.LEGACY_UNATTRIBUTED,
+            dao.answerEvents().first { it.id == "unknown-answer" }.courseId)
+        assertEquals("controls-course", dao.reviewState("pause-control")!!.courseId)
+        assertEquals("controls-course", dao.bookmarks().single().courseId)
+        upgraded.close()
         context.deleteDatabase(name)
         Unit
     }

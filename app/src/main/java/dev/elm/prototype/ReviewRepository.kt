@@ -36,18 +36,39 @@ data class ReviewResult(val recorded: Boolean, val wasDue: Boolean, val state: R
 
 class ReviewRepository(private val db: LearningDatabase, private val dao: LearningDao,
     private val clock: Clock) {
-    /** Seed migrated and new completions from the validated current pack without replacing history. */
+    /** Reconcile active sources from completed current lessons; answer/completion evidence is immutable. */
     suspend fun ensureSeeded(pack: ContentPack, completions: List<LessonCompletion>) {
         db.withTransaction {
-            completions.sortedBy { it.completedAt }.forEach { completion ->
-                val lesson = pack.lessons.firstOrNull {
-                    it.id == completion.lessonId && it.version == completion.version
-                } ?: return@forEach
-                lesson.questions.forEach { question ->
-                    dao.insertReviewState(ReviewState(question.conceptId, lesson.id, lesson.version,
-                        question.id, question.version, 0, completion.completedAt,
-                        initialReviewDue(Instant.ofEpochMilli(completion.completedAt)).toEpochMilli(), null))
-                }
+            data class Source(val completion: LessonCompletion, val lesson: PackLesson,
+                val question: PackQuestion)
+            val candidates = completions.filter { it.courseId == pack.courseId }
+                .mapNotNull { completion ->
+                    pack.lessons.firstOrNull { it.id == completion.lessonId &&
+                        it.version == completion.version }?.let { completion to it }
+                }.flatMap { (completion, lesson) ->
+                    lesson.questions.map { Source(completion, lesson, it) }
+                }.groupBy { it.question.conceptId }
+            val oldStates = dao.reviewStates().filter { it.courseId == pack.courseId }
+            oldStates.filter { it.conceptId !in candidates }.forEach {
+                dao.deleteReviewState(pack.courseId, it.conceptId)
+            }
+            candidates.forEach { (conceptId, sources) ->
+                val old = oldStates.firstOrNull { it.conceptId == conceptId }
+                val chosen = sources.sortedWith(compareByDescending<Source> {
+                    old != null && it.lesson.id == old.lessonId &&
+                        it.question.id == old.questionId && it.question.version == old.questionVersion
+                }.thenByDescending { it.completion.completedAt }
+                    .thenBy { it.lesson.id }.thenBy { it.question.id }).first()
+                val unchanged = old != null && old.lessonId == chosen.lesson.id &&
+                    old.questionId == chosen.question.id &&
+                    old.questionVersion == chosen.question.version
+                val replacement = if (unchanged) old!!.copy(lessonVersion = chosen.lesson.version)
+                else ReviewState(conceptId, chosen.lesson.id, chosen.lesson.version,
+                    chosen.question.id, chosen.question.version, 0, chosen.completion.completedAt,
+                    initialReviewDue(Instant.ofEpochMilli(chosen.completion.completedAt)).toEpochMilli(),
+                    null, pack.courseId)
+                if (old == null) dao.insertReviewState(replacement)
+                else dao.updateReviewState(replacement)
             }
         }
     }
@@ -56,16 +77,17 @@ class ReviewRepository(private val db: LearningDatabase, private val dao: Learni
     suspend fun submit(state: ReviewState, question: PackQuestion, sessionId: String,
         selected: Int, hinted: Boolean, revealed: Boolean): ReviewResult = db.withTransaction {
         require(selected in question.choices.indices || (selected == -1 && revealed))
-        val current = dao.reviewState(state.conceptId)
+        val current = dao.reviewState(state.conceptId, state.courseId)
             ?: throw IllegalArgumentException("Review concept is no longer available")
-        require(current.questionId == question.id && current.questionVersion == question.version &&
-            current.conceptId == question.conceptId) { "Review question version changed" }
+        require(current.lessonId == state.lessonId && current.lessonVersion == state.lessonVersion &&
+            current.questionId == question.id && current.questionVersion == question.version &&
+            current.conceptId == question.conceptId) { "Review source changed" }
         val now = clock.instant()
         val due = current.dueAt <= now.toEpochMilli()
-        val event = AnswerEvent("review:$sessionId:${state.conceptId}",
+        val event = AnswerEvent("review:${state.courseId}:$sessionId:${state.conceptId}",
             current.lessonId, current.questionId, current.questionVersion, sessionId,
             selected, selected == question.correctIndex, hinted, revealed,
-            now.toEpochMilli(), if (due) "review" else "link")
+            now.toEpochMilli(), if (due) "review" else "link", state.courseId)
         if (dao.insertAnswerEvent(event) == -1L)
             return@withTransaction ReviewResult(false, due, current)
         val updated = if (due) {
