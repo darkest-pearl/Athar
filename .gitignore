@@ -13,6 +13,8 @@
 /.kotlin/
 *.log
 !app/src/main/assets/neutral-tone.wav
+!app/src/main/assets/neutral-cue-a.wav
+!app/src/main/assets/neutral-cue-b.wav
 /%SystemDrive%/
 *.apk
 *.aab

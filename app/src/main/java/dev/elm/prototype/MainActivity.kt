@@ -509,7 +509,11 @@ fun AtharApp(db: LearningDatabase) {
                                                 }
                                             },
                                             onSource = { reviewSourceVisible = !reviewSourceVisible },
-                                            onNext = ::advanceReview)
+                                            onNext = ::advanceReview,
+                                            onOpenLesson = {
+                                                lessonId = sourceLesson.id
+                                                page = "Lesson"
+                                            })
                                     }
                                 }
                             }

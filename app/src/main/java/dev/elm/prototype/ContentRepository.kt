@@ -10,17 +10,26 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 
+sealed interface PackSourceRef {
+    val contentVersion: Int
+    data class FixtureText(val lessonId: String, override val contentVersion: Int,
+        val passage: String) : PackSourceRef
+    data class RecordingPassage(val segmentId: String, override val contentVersion: Int,
+        val startMs: Long, val endMs: Long) : PackSourceRef
+}
+
 data class PackQuestion(
     val id: String, val version: Int, val conceptId: String, val prompt: String,
     val choices: List<String>, val correctIndex: Int, val explanation: String,
-    val sourceRef: String
+    val sourceRef: PackSourceRef
 )
 data class PackLesson(
     val id: String, val version: Int, val title: String, val language: String,
     val notes: String, val segmentRef: String, val permissionRef: String,
     val questions: List<PackQuestion>, val prerequisiteConceptIds: List<String>
 )
-data class PackRecording(val id: String, val relativePath: String, val durationMs: Long)
+data class PackRecording(val id: String, val relativePath: String, val durationMs: Long,
+    val title: String = "", val sha256: String? = null, val bytes: Long? = null)
 data class PackSegment(val id: String, val recordingId: String, val startMs: Long, val endMs: Long)
 data class ContentPack(
     val courseId: String, val courseTitle: String, val contentVersion: Int,
@@ -66,7 +75,18 @@ object ContentPackParser {
             }
             val duration = longNumber(item, "durationMs", where, 1)
             authorized(permissions, string(item, "permissionRef", where), where)
-            recordings[key] = PackRecording(key, path, duration)
+            val checksum = if (item.has("sha256") && !item.isNull("sha256")) {
+                string(item, "sha256", where).also {
+                    require(Regex("[0-9a-f]{64}").matches(it)) { "$where.sha256: lowercase SHA-256 required" }
+                }
+            } else null
+            val size = if (item.has("bytes") && !item.isNull("bytes"))
+                longNumber(item, "bytes", where, 1) else null
+            require((checksum == null) == (size == null)) {
+                "$where: sha256 and bytes must be supplied together"
+            }
+            recordings[key] = PackRecording(key, path, duration,
+                optionalString(item, "title", where), checksum, size)
         }
         val segments = linkedMapOf<String, PackSegment>()
         entries(root, "segments", "pack", 500).forEachIndexed { index, item ->
@@ -124,21 +144,33 @@ object ContentPackParser {
                 val correctIndex = number(question, "correctIndex", qwhere)
                 require(correctIndex < choices.size) { "$qwhere.correctIndex: out of range" }
                 val sourceRef = objectField(question, "sourceRef", qwhere)
-                if (sourceRef.optString("kind") == "fixture-text") {
+                val source = if (sourceRef.optString("kind") == "fixture-text") {
                     require(sourceRef.optString("lessonId") == key) { "$qwhere: invalid fixture source lesson" }
-                    number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
-                    string(sourceRef, "passage", "$qwhere.sourceRef")
+                    val sourceVersion = number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
+                    val passage = string(sourceRef, "passage", "$qwhere.sourceRef")
+                    require(passage in setOf("notes", "interface-contract")) {
+                        "$qwhere: unknown fixture passage"
+                    }
+                    require(passage != "notes" || notes.isNotBlank()) {
+                        "$qwhere: notes passage is empty"
+                    }
+                    PackSourceRef.FixtureText(key, sourceVersion, passage)
                 } else {
+                    require(!sourceRef.has("kind") || sourceRef.optString("kind") == "recording-passage") {
+                        "$qwhere: invalid source kind"
+                    }
                     val sourceSegment = segments[sourceRef.optString("segmentId")]
                         ?: throw IllegalArgumentException("$qwhere: unknown source passage segment")
                     val sourceStart = longNumber(sourceRef, "startMs", "$qwhere.sourceRef")
                     val sourceEnd = longNumber(sourceRef, "endMs", "$qwhere.sourceRef", 1)
                     require(sourceSegment.startMs <= sourceStart && sourceStart < sourceEnd &&
                         sourceEnd <= sourceSegment.endMs) { "$qwhere: invalid source passage" }
-                    number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
+                    val sourceVersion = number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
+                    PackSourceRef.RecordingPassage(sourceSegment.id, sourceVersion,
+                        sourceStart, sourceEnd)
                 }
                 PackQuestion(qid, qversion, conceptId, prompt, choices, correctIndex,
-                    explanation, canonical(sourceRef))
+                    explanation, source)
             }
             PackLesson(key, version, title, lessonLanguage, notes, segmentRef,
                 permissionRef, questions, prerequisites)

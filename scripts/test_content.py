@@ -71,5 +71,35 @@ class SharedContractTests(unittest.TestCase):
   pack=json.loads(pathlib.Path('content/fixture-pack.json').read_text(encoding='utf8'))
   pack['lessons'][1]['prerequisiteConceptIds']=['missing']
   self.assertTrue(any('prerequisite' in e for e in validate(pack)))
+ def test_source_kind_passage_and_checksum_contract(self):
+  pack=json.loads(pathlib.Path('content/fixture-pack.json').read_text(encoding='utf8'))
+  pack['lessons'][0]['questions'][0]['sourceRef']['passage']='unmapped'
+  self.assertTrue(any('unknown fixture passage' in e for e in validate(pack)))
+  pack=json.loads(pathlib.Path('content/fixture-pack.json').read_text(encoding='utf8'))
+  pack['lessons'][0]['questions'][0]['sourceRef']={
+   'kind':'recording-passage','segmentId':'tone-all','startMs':1000,
+   'endMs':2000,'contentVersion':pack['contentVersion']}
+  pack['recordings'][0]['sha256']='a'*64
+  pack['recordings'][0]['bytes']=123
+  self.assertEqual([],validate(pack))
+  pack['recordings'][0]['sha256']='bad'
+  self.assertTrue(any('sha256' in e for e in validate(pack)))
+  pack['recordings'][0]['sha256']='a'*64
+  pack['lessons'][0]['questions'][0]['sourceRef']['kind']='unknown'
+  self.assertTrue(any('invalid source kind' in e for e in validate(pack)))
+ def test_audio_qa_pack_uses_two_identified_nonzero_sources(self):
+  import hashlib
+  pack=json.loads(pathlib.Path('content/qa-passage-pack.json').read_text(encoding='utf8'))
+  self.assertEqual([],validate(pack))
+  self.assertEqual(pathlib.Path('content/qa-passage-pack.json').read_bytes(),
+                   pathlib.Path('app/src/main/assets/qa-passage-pack.json').read_bytes())
+  self.assertEqual({'cue-a','cue-b'}, {r['id'] for r in pack['recordings']})
+  for recording in pack['recordings']:
+   data=(pathlib.Path('app/src/main/assets')/recording['relativePath']).read_bytes()
+   self.assertEqual(len(data),recording['bytes'])
+   self.assertEqual(hashlib.sha256(data).hexdigest(),recording['sha256'])
+  refs=[q['sourceRef'] for q in pack['lessons'][0]['questions']]
+  self.assertEqual(['cue-a-lesson','cue-b-source'],[ref['segmentId'] for ref in refs])
+  self.assertTrue(all(ref['startMs']>0 for ref in refs))
 
 if __name__ == '__main__': unittest.main()

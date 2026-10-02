@@ -111,6 +111,15 @@ def validate(pack, publish=False):
             check(not path.startswith("/") and ".." not in path and "\\" not in path,
                   f"recordings.{rid}.relativePath: unsafe path")
         integer(recording.get("durationMs"), f"recordings.{rid}.durationMs", 1)
+        checksum, byte_count = recording.get("sha256"), recording.get("bytes")
+        check((checksum is None) == (byte_count is None),
+              f"recordings.{rid}: sha256 and bytes must be supplied together")
+        if checksum is not None:
+            check(isinstance(checksum, str) and bool(re.fullmatch(r"[0-9a-f]{64}", checksum)),
+                  f"recordings.{rid}.sha256: lowercase SHA-256 required")
+            integer(byte_count, f"recordings.{rid}.bytes", 1)
+        if "title" in recording and recording["title"] is not None:
+            nonblank(recording["title"], f"recordings.{rid}.title")
         authorized(recording.get("permissionRef"), f"recordings.{rid}")
     for sid, segment in segments.items():
         recording = recordings.get(segment.get("recordingId")) if isinstance(segment.get("recordingId"), str) else None
@@ -177,7 +186,13 @@ def validate(pack, publish=False):
                     check(ref.get("lessonId") == lid, f"{qwhere}: invalid fixture source lesson")
                     integer(ref.get("contentVersion"), f"{qwhere}.sourceRef.contentVersion", 1)
                     nonblank(ref.get("passage"), f"{qwhere}.sourceRef.passage")
+                    check(ref.get("passage") in {"notes", "interface-contract"},
+                          f"{qwhere}: unknown fixture passage")
+                    if ref.get("passage") == "notes":
+                        nonblank(lesson.get("notes"), f"{qwhere}: notes passage")
                 else:
+                    check(ref.get("kind") in (None, "recording-passage"),
+                          f"{qwhere}: invalid source kind")
                     segment = segments.get(ref.get("segmentId")) if isinstance(ref.get("segmentId"), str) else None
                     check(segment is not None, f"{qwhere}: source reference missing or invalid")
                     start, end = ref.get("startMs"), ref.get("endMs")
