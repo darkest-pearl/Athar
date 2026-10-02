@@ -14,6 +14,37 @@ import java.time.ZoneOffset
 class ReviewRepositoryTest {
     private fun clock(value: String) = Clock.fixed(Instant.parse(value), ZoneOffset.UTC)
 
+    @Test fun coldStartReconciliationKeepsAdvancedScheduleAndPendingBatch() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val name = "review-startup-race.db"
+        context.deleteDatabase(name)
+        val pack = ContentPackParser.parse(context.assets.open("fixture-pack.json").use { it.readBytes() })
+        val lesson = pack.lessons.first()
+        val db = LearningDatabase.open(context, name)
+        val dao = db.learningDao()
+        val learned = Instant.parse("2026-10-01T00:00:00Z").toEpochMilli()
+        dao.insertLessonCompletion(LessonCompletion("startup-completion", lesson.id,
+            lesson.version, learned, "2026-10-01", "UTC", "startup", pack.courseId))
+        val repo = ReviewRepository(db, dao, clock("2026-10-02T01:00:00Z"))
+        repo.ensureSeeded(pack)
+        val initial = dao.reviewState("pause-control", pack.courseId)!!
+        repo.submit(initial, lesson.questions.first(), "startup-review", 0, false, false)
+        val advanced = dao.reviewState("pause-control", pack.courseId)!!
+        val pending = SessionRepository(db, dao, clock("2026-10-02T02:00:00Z"))
+            .startReview(pack, listOf(advanced), "pending-startup")
+        db.close()
+        val reopened = LearningDatabase.open(context, name)
+        // Equivalent to a delayed first completion Flow emission: reconciliation runs
+        // while the UI still shows its loading placeholder.
+        ReviewRepository(reopened, reopened.learningDao(), clock("2026-10-02T02:00:00Z"))
+            .ensureSeeded(pack)
+        assertEquals(advanced, reopened.learningDao().reviewState("pause-control", pack.courseId))
+        assertEquals(pending.items(), reopened.learningDao().pendingSession("pending-startup")!!.items())
+        reopened.close()
+        context.deleteDatabase(name)
+        Unit
+    }
+
     @Test fun updatedLessonCanSeedCurrentConceptAfterOldSourceWasCompleted() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "review-upgrade-reproduction.db"
@@ -27,7 +58,7 @@ class ReviewRepositoryTest {
         dao.insertLessonCompletion(LessonCompletion("${lesson.id}:v1", lesson.id, 1,
             t1, "2026-10-01", "UTC", "first"))
         val repo = ReviewRepository(db, dao, clock("2026-10-01T00:00:00Z"))
-        repo.ensureSeeded(v1, dao.lessonCompletions())
+        repo.ensureSeeded(v1)
         assertEquals(1, dao.reviewState("pause-control")!!.questionVersion)
         val practiced = ReviewRepository(db, dao, clock("2026-10-02T02:00:00Z"))
             .submit(dao.reviewState("pause-control")!!, lesson.questions[0],
@@ -40,7 +71,7 @@ class ReviewRepositoryTest {
         val revised = v2.lessons.first()
         dao.insertLessonCompletion(LessonCompletion("${revised.id}:v2", revised.id, 2,
             t1 + 2 * 24 * 3600_000, "2026-10-03", "UTC", "second"))
-        repo.ensureSeeded(v2, dao.lessonCompletions())
+        repo.ensureSeeded(v2)
         assertEquals(0, dao.reviewState("pause-control")!!.stage)
         val eligible = dao.reviewStates().filter { state -> revised.questions.any {
             it.conceptId == state.conceptId && it.id == state.questionId &&
@@ -77,8 +108,8 @@ class ReviewRepositoryTest {
                     1, at, "2026-10-01", "UTC", "session-$courseId-${lesson.id}", courseId))
             }
         val repo = ReviewRepository(db, dao, clock("2026-10-01T00:00:00Z"))
-        repo.ensureSeeded(first, dao.lessonCompletions())
-        repo.ensureSeeded(second, dao.lessonCompletions())
+        repo.ensureSeeded(first)
+        repo.ensureSeeded(second)
         assertEquals(4, dao.reviewStates().count { it.courseId == first.courseId })
         assertEquals(3, dao.reviewStates().count { it.courseId == second.courseId })
         assertNotNull(dao.reviewState("pause-control", first.courseId))
@@ -104,7 +135,7 @@ class ReviewRepositoryTest {
         dao.insertLessonCompletion(LessonCompletion("controls-fixture:v1", lesson.id, lesson.version,
             learned.toEpochMilli(), "2026-10-02", "Asia/Dubai", "session-learn"))
         val early = ReviewRepository(db, dao, clock("2026-10-02T08:00:00Z"))
-        early.ensureSeeded(pack, dao.lessonCompletions())
+        early.ensureSeeded(pack)
         val first = dao.reviewState("pause-control")!!
         assertEquals(initialReviewDue(learned).toEpochMilli(), first.dueAt)
         assertEquals(2, dao.reviewStates().size)

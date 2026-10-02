@@ -1,0 +1,7 @@
+# Startup loading regression · 2 October 2026
+
+At `780db35`, `AtharApp` supplied an empty list before Room's first completion and pending-session emissions. `ensureSeeded(pack, emptyList())` deleted all active-course review states; a later emission reseeded them at stage 0. A saved quiz cursor could render against the fallback lesson before its matching session loaded.
+
+The fix represents both observations as loading until Room emits. Reconciliation reads completions inside its database transaction, so a stale observation can trigger a refresh but cannot supply rows for deletion. Quiz renders only after the exact pending session, material versions, ordered question references, and cursor are valid; selection is keyed to that session/cursor. Review shows a loading state while a saved batch is restored.
+
+`coldStartReconciliationKeepsAdvancedScheduleAndPendingBatch` advances a concept to stage 1, stores a pending review snapshot, reopens the database, and reconciles before any UI completion list exists. It asserts identical course/source/stage/due/learned/review timestamps and an intact batch. Connected run on ElmPrototype API 36: 17 tests passed. `assembleDebug`, `lintDebug`, and `testDebugUnitTest` passed. The startup race itself was established from the pre-fix Compose code path; this test controls the empty-initial-observation boundary through the repository call. A delayed-DAO Activity instrumentation test has not been run, so that specific visual timing is not independently claimed.

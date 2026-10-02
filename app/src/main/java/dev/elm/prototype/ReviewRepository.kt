@@ -37,8 +37,10 @@ data class ReviewResult(val recorded: Boolean, val wasDue: Boolean, val state: R
 class ReviewRepository(private val db: LearningDatabase, private val dao: LearningDao,
     private val clock: Clock) {
     /** Reconcile active sources from completed current lessons; answer/completion evidence is immutable. */
-    suspend fun ensureSeeded(pack: ContentPack, completions: List<LessonCompletion>) {
+    suspend fun ensureSeeded(pack: ContentPack) {
         db.withTransaction {
+            // Read authoritative rows in the same transaction as schedule reconciliation.
+            val completions = dao.lessonCompletions()
             data class Source(val completion: LessonCompletion, val lesson: PackLesson,
                 val question: PackQuestion)
             val candidates = completions.filter { it.courseId == pack.courseId }

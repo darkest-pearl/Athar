@@ -59,8 +59,9 @@ fun AtharApp(db: LearningDatabase) {
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
     val study = remember(db, zone) { StudyRepository(db, dao, Clock.systemUTC(), zone) }
     val sessions = remember(db) { SessionRepository(db, dao, Clock.systemUTC()) }
-    val pendingSessions by remember(dao) { dao.observePendingSessions() }
-        .collectAsState(initial = emptyList())
+    val pendingSessionSnapshot by remember(dao) { dao.observePendingSessions() }
+        .collectAsState<List<PendingSession>, List<PendingSession>?>(initial = null)
+    val pendingSessions = pendingSessionSnapshot.orEmpty()
     val studyDays by remember(dao) { dao.observeStudyDays() }
         .collectAsState(initial = emptyList())
     val reviewClock = remember { Clock.systemUTC() }
@@ -68,16 +69,18 @@ fun AtharApp(db: LearningDatabase) {
     val contentRepo = remember { ContentRepository(context) }
     val initial = remember { runCatching { contentRepo.load() } }
     var pack by remember { mutableStateOf(initial.getOrNull()) }
-    val completions by remember(dao) { dao.observeLessonCompletions() }
-        .collectAsState(initial = emptyList())
+    val completionSnapshot by remember(dao) { dao.observeLessonCompletions() }
+        .collectAsState<List<LessonCompletion>, List<LessonCompletion>?>(initial = null)
+    val completions = completionSnapshot.orEmpty()
     val bookmarks by remember(dao) { dao.observeBookmarks() }
         .collectAsState(initial = emptyList())
     val reviewStates by remember(dao) { dao.observeReviewStates() }
         .collectAsState(initial = emptyList())
     var nowMillis by remember { mutableLongStateOf(reviewClock.millis()) }
     LaunchedEffect(Unit) { while (true) { nowMillis = reviewClock.millis(); delay(60_000) } }
-    LaunchedEffect(pack, completions) {
-        pack?.let { reviews.ensureSeeded(it, completions) }
+    LaunchedEffect(pack, completionSnapshot) {
+        // Observations trigger refresh only; the repository reads completions atomically.
+        if (completionSnapshot != null) pack?.let { reviews.ensureSeeded(it) }
     }
     var page by rememberSaveable { mutableStateOf("Today") }
     var direction by rememberSaveable { mutableStateOf(Direction.Garden) }
@@ -226,7 +229,11 @@ fun AtharApp(db: LearningDatabase) {
                             color = MaterialTheme.colorScheme.primary)
                         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                        val lesson = active.lessons.firstOrNull { it.id == lessonId } ?: active.lessons.first()
+                        val resolvedLessonId = if (page == "Quiz")
+                            pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
+                                ?.lessonId ?: lessonId else lessonId
+                        val lesson = active.lessons.firstOrNull { it.id == resolvedLessonId }
+                            ?: active.lessons.first()
                         val eligible = eligibleStates()
                         val dueCount = dueReviewCount(eligible, Instant.ofEpochMilli(nowMillis))
                         val streak = streakStats(studyDays,
@@ -312,31 +319,43 @@ fun AtharApp(db: LearningDatabase) {
                                 onQuickRecall = {
                                     startReviews(lesson.prerequisiteConceptIds, true)
                                 })
-                            "Quiz" -> if (pendingSessions.firstOrNull { it.id == sessionId }
-                                ?.let { it.courseId != active.courseId || it.lessonId != lesson.id ||
-                                    it.lessonVersion != lesson.version ||
-                                    it.items().any { item -> lesson.questions.none { question ->
-                                        question.id == item.questionId &&
-                                            question.version == item.questionVersion &&
-                                            question.conceptId == item.conceptId } } } == true) {
+                            "Quiz" -> if (pendingSessionSnapshot == null) {
+                                Title(stringResource(R.string.session_loading_title))
+                            } else if (pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
+                                ?.let { saved -> saved.courseId != active.courseId ||
+                                    saved.lessonId != lesson.id || saved.lessonVersion != lesson.version ||
+                                    saved.cursor !in lesson.questions.indices ||
+                                    saved.items().size != lesson.questions.size ||
+                                    saved.items().withIndex().any { (index, item) ->
+                                        val question = lesson.questions[index]
+                                        item.questionId != question.id ||
+                                            item.questionVersion != question.version ||
+                                            item.conceptId != question.conceptId
+                                    } } != false) {
                                 Title(stringResource(R.string.session_unavailable_title))
                                 Note(stringResource(R.string.session_unavailable_note))
                                 Action(stringResource(R.string.session_close_action)) {
                                     scope.launch { sessions.abandon(sessionId); page = "Today" }
                                 }
-                            } else QuizScreen(active, lesson, questionIndex, selected, feedback, busy,
+                            } else {
+                                val saved = pendingSessions.first { it.id == sessionId && it.kind == "lesson" }
+                                var choice by remember(saved.id, saved.cursor) {
+                                    mutableIntStateOf(saved.selected)
+                                }
+                                QuizScreen(active, lesson, saved.cursor,
+                                choice, saved.feedback, busy,
                                 onSelect = {
-                                    selected = it
+                                    choice = it
                                     scope.launch { runCatching { sessions.updateInput(sessionId, selected = it) } }
                                 },
                                 onCheck = {
                                     busy = true
-                                    val question = lesson.questions[questionIndex]
+                                    val question = lesson.questions[saved.cursor]
                                     scope.launch {
                                         try {
-                                            sessions.updateInput(sessionId, selected = selected)
+                                            sessions.updateInput(sessionId, selected = choice)
                                             val result = sessions.submitLesson(sessionId, lesson, question)
-                                            selected = result.event.selected
+                                            choice = result.event.selected
                                             feedback = true
                                             error = null
                                         } catch (_: Exception) {
@@ -369,9 +388,18 @@ fun AtharApp(db: LearningDatabase) {
                                         } finally { busy = false }
                                     }
                                 })
+                            }
                             "Done" -> DoneScreen(streak) { page = "Progress" }
                             "Review" -> {
-                                if (reviewBatch.isEmpty() || reviewIndex >= reviewBatch.size) {
+                                val savedReview = pendingSessions.firstOrNull {
+                                    it.id == reviewSessionId && it.kind == "review"
+                                }
+                                if (pendingSessionSnapshot == null ||
+                                    (savedReview != null && (reviewBatch.map { it.conceptId } !=
+                                        savedReview.items().map { it.conceptId } ||
+                                        reviewIndex != savedReview.cursor))) {
+                                    Title(stringResource(R.string.session_loading_title))
+                                } else if (reviewBatch.isEmpty() || reviewIndex >= reviewBatch.size) {
                                     ReviewOverview(dueCount, reviewFinished) { startReviews() }
                                 } else {
                                     val state = reviewBatch[reviewIndex]
