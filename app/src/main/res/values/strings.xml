@@ -1,4 +1,5 @@
 ﻿<resources>
+    <string name="session_loading_title">Loading saved study…</string>
     <string name="app_name">Athar · prototype</string>
     <string name="nav_today">Today</string>
     <string name="nav_learn">Learn</string>
