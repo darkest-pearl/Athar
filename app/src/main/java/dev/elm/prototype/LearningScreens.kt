@@ -92,10 +92,10 @@ fun QuizScreen(pack: ContentPack, lesson: PackLesson, index: Int, selectedIndex:
             Text(stringResource(if (selectedIndex == question.correctIndex) R.string.correct_answer
                 else R.string.incorrect_answer), style = MaterialTheme.typography.titleLarge)
             Note(question.explanation)
-            Note(stringResource(if (pack.developmentOnly) R.string.source_fixture else R.string.source_pack))
         }
     }
     if (feedback) {
+        AnswerSourcePanel(pack, lesson, question)
         if (index + 1 < lesson.questions.size)
             Action(stringResource(R.string.next_question), !busy, onNext)
         else Action(stringResource(R.string.finish_lesson), !busy, onFinish)

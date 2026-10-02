@@ -33,6 +33,7 @@
     <string name="full_recording_label">Full selected recording</string>
     <string name="tone_label">Bundled test tone · no speech</string>
     <string name="document_label">Selected local recording · technical test</string>
+    <string name="verified_document_label">Verified local recording</string>
     <string name="representative_label">Injected development file · technical test</string>
     <string name="audio_test_note">Audio is for player testing. No transcript or quiz is derived from a selected recording.</string>
     <string name="audio_missing">Selected recording is unavailable. Select the local recording again.</string>
@@ -97,7 +98,7 @@
     <string name="review_batch_done">Review batch complete</string>
     <string name="review_error">Review could not be saved. Try again.</string>
     <string name="review_source">Explanation and source metadata come from the active local content pack.</string>
-    <string name="replay_review_source">Replay source audio</string>
+    <string name="replay_review_source">View answer passage</string>
     <string name="related_recall">Quick recall before this lesson</string>
     <string name="related_recall_note">Optional check of a concept you already practiced. You can continue the lesson at any time.</string>
     <string name="review_unavailable">This review question is unavailable in the active pack.</string>
@@ -116,4 +117,22 @@
     <string name="session_unavailable_title">This session needs attention</string>
     <string name="session_unavailable_note">The exact lesson or review source is no longer in the active content. Saved answers remain in your history; close this session and start with current material.</string>
     <string name="session_close_action">Close this session</string>
+    <string name="source_passage_title">Answer source</string>
+    <string name="fixture_text_source_label">Neutral interface passage · text only</string>
+    <string name="fixture_interface_contract">Finish lesson saves a completed lesson on this device. Opening the app alone does not complete it.</string>
+    <string name="source_passage_range">Passage %1$s–%2$s in the original recording</string>
+    <string name="open_surrounding_lesson">Open surrounding lesson</string>
+    <string name="play_passage">Play passage</string>
+    <string name="replay_passage">Replay passage from start</string>
+    <string name="audio_skip_back">−10</string>
+    <string name="audio_skip_forward">+10</string>
+    <string name="audio_skip_back_accessible">Back ten seconds</string>
+    <string name="audio_skip_forward_accessible">Forward ten seconds</string>
+    <string name="audio_unknown_time">--:--</string>
+    <string name="audio_timeline_announcement">Audio position %1$s of %2$s</string>
+    <string name="return_to_passage">Return to passage</string>
+    <string name="audio_verifying">Checking the selected recording…</string>
+    <string name="audio_unverified_fixture">Development audio selection · file identity is unverified.</string>
+    <string name="audio_wrong_file">This file does not match the recording identity in the content pack. The previous selection is preserved.</string>
+    <string name="audio_identity_missing">This content pack has no recording checksum for a verified local selection.</string>
 </resources>

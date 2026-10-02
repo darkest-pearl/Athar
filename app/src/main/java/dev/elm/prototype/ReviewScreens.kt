@@ -25,7 +25,8 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
     index: Int, total: Int, selectedIndex: Int, hinted: Boolean, revealed: Boolean,
     feedback: Boolean, busy: Boolean, wasDue: Boolean, sourceVisible: Boolean,
     onSelect: (Int) -> Unit, onHint: () -> Unit, onReveal: () -> Unit,
-    onSubmit: () -> Unit, onSource: () -> Unit, onNext: () -> Unit) {
+    onSubmit: () -> Unit, onSource: () -> Unit, onNext: () -> Unit,
+    onOpenLesson: () -> Unit) {
     Title(stringResource(R.string.nav_review))
     Note(stringResource(R.string.review_progress, index + 1, total))
     Note(question.prompt)
@@ -50,12 +51,17 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
                     R.string.independent_recall else R.string.assisted_recall),
                 style = MaterialTheme.typography.titleLarge)
             Note(question.explanation)
-            Note(stringResource(R.string.review_source))
         }
-        TextButton(onClick = onSource, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.replay_review_source))
+        if (question.sourceRef is PackSourceRef.FixtureText)
+            AnswerSourcePanel(pack, lesson, question, onOpenLesson)
+        else {
+            TextButton(onClick = onSource, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.replay_review_source))
+            }
+            if (sourceVisible) androidx.compose.runtime.key(question.conceptId) {
+                AnswerSourcePanel(pack, lesson, question, onOpenLesson)
+            }
         }
-        if (sourceVisible) androidx.compose.runtime.key(question.conceptId) { AudioPanel(pack, lesson) }
         Action(stringResource(if (index + 1 < total) R.string.review_next else R.string.review_finish),
             enabled = !busy, click = onNext)
     }

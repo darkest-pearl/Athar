@@ -42,6 +42,32 @@ class ContentAndMigrationTest {
         }.isFailure)
     }
 
+    @Test fun typedSourcePassageAndRecordingIdentityMatchAuthoringContract() {
+        val raw = fixture().toString(Charsets.UTF_8)
+        val text = ContentPackParser.parse(raw.toByteArray())
+        assertEquals(PackSourceRef.FixtureText("controls-fixture", 1, "notes"),
+            text.lessons.first().questions.first().sourceRef)
+        val recordingRef = """"sourceRef": {"kind":"recording-passage","segmentId":"tone-all","startMs":1000,"endMs":2000,"contentVersion":2}"""
+        val sourceStart = raw.indexOf("\"sourceRef\"")
+        val sourceEnd = raw.indexOf('}', sourceStart) + 1
+        val replaced = raw.replaceRange(sourceStart, sourceEnd, recordingRef)
+        val parsed = ContentPackParser.parse(replaced.toByteArray())
+        assertEquals(PackSourceRef.RecordingPassage("tone-all", 2, 1000, 2000),
+            parsed.lessons.first().questions.first().sourceRef)
+        assertTrue(runCatching { ContentPackParser.parse(replaced.replace("\"endMs\":2000",
+            "\"endMs\":20000").toByteArray()) }.isFailure)
+        assertTrue(runCatching { ContentPackParser.parse(raw.replaceFirst("\"passage\": \"notes\"",
+            "\"passage\": \"unknown\"").toByteArray()) }.isFailure)
+        val qa = ContentPackParser.parse(context.assets.open("qa-passage-pack.json")
+            .use { it.readBytes() })
+        assertEquals(listOf("cue-a-lesson", "cue-b-source"), qa.lessons.first().questions.map {
+            (it.sourceRef as PackSourceRef.RecordingPassage).segmentId
+        })
+        assertTrue(qa.lessons.first().questions.all {
+            (it.sourceRef as PackSourceRef.RecordingPassage).startMs > 0
+        })
+    }
+
     @Test fun rejectedImportKeepsWorkingPack() {
         val sandbox = File(context.cacheDir, "content-import-test")
         sandbox.mkdirs()

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "contentVersion": 1,
+  "developmentOnly": true,
+  "language": "en",
+  "course": {
+    "id": "audio-qa-course",
+    "title": "Audio source QA",
+    "curriculumStatus": "fixture"
+  },
+  "permissions": [
+    {
+      "id": "neutral-fixture",
+      "status": "authorized",
+      "source": "Developer-authored non-speech tones"
+    }
+  ],
+  "recordings": [
+    {
+      "id": "cue-a",
+      "relativePath": "neutral-cue-a.wav",
+      "title": "Neutral cue A",
+      "durationMs": 12000,
+      "permissionRef": "neutral-fixture",
+      "sha256": "093beec8f3a9ddf8c2efec940c457463e55a57bafdd32e89704025a74e16b550",
+      "bytes": 192044
+    },
+    {
+      "id": "cue-b",
+      "relativePath": "neutral-cue-b.wav",
+      "title": "Neutral cue B",
+      "durationMs": 12000,
+      "permissionRef": "neutral-fixture",
+      "sha256": "d6c9e28c803d812fd751067d6ffa822aa179cbd9981605f5c5b231e548d60bef",
+      "bytes": 192044
+    }
+  ],
+  "segments": [
+    {
+      "id": "cue-a-lesson",
+      "recordingId": "cue-a",
+      "startMs": 2000,
+      "endMs": 8000,
+      "boundaryReviewed": false
+    },
+    {
+      "id": "cue-b-source",
+      "recordingId": "cue-b",
+      "startMs": 2000,
+      "endMs": 8000,
+      "boundaryReviewed": false
+    }
+  ],
+  "concepts": [
+    {
+      "id": "first-cue"
+    },
+    {
+      "id": "other-cue"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "audio-source-check",
+      "version": 1,
+      "title": "Test passage controls",
+      "language": "en",
+      "state": "draft",
+      "segmentRef": "cue-a-lesson",
+      "permissionRef": "neutral-fixture",
+      "contentType": "audio-fixture",
+      "notes": "Cue A changes pitch at six seconds. This is a technical audio test, not teaching content.",
+      "reviews": [],
+      "questions": [
+        {
+          "id": "cue-a-question",
+          "version": 1,
+          "conceptId": "first-cue",
+          "prompt": "Which cue belongs to this lesson?",
+          "choices": [
+            "Cue A",
+            "Cue B"
+          ],
+          "correctIndex": 0,
+          "explanation": "The lesson segment uses cue A; the answer passage is its later tone.",
+          "sourceRef": {
+            "kind": "recording-passage",
+            "segmentId": "cue-a-lesson",
+            "startMs": 6000,
+            "endMs": 8000,
+            "contentVersion": 1
+          },
+          "reviews": []
+        },
+        {
+          "id": "cue-b-question",
+          "version": 1,
+          "conceptId": "other-cue",
+          "prompt": "Which cue is the second source?",
+          "choices": [
+            "Cue A",
+            "Cue B"
+          ],
+          "correctIndex": 1,
+          "explanation": "This answer deliberately points to a different recording, cue B.",
+          "sourceRef": {
+            "kind": "recording-passage",
+            "segmentId": "cue-b-source",
+            "startMs": 2000,
+            "endMs": 4000,
+            "contentVersion": 1
+          },
+          "reviews": []
+        }
+      ]
+    }
+  ]
+}
