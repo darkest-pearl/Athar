@@ -13,6 +13,8 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import org.json.JSONArray
+import org.json.JSONObject
 
 @RunWith(AndroidJUnit4::class)
 class ContentAndMigrationTest {
@@ -66,6 +68,57 @@ class ContentAndMigrationTest {
         assertTrue(qa.lessons.first().questions.all {
             (it.sourceRef as PackSourceRef.RecordingPassage).startMs > 0
         })
+    }
+
+    @Test fun guidedUnitsAndPrerequisitesFollowValidatedContent() {
+        val raw = context.assets.open("qa-passage-pack.json").use { it.readBytes() }
+            .toString(Charsets.UTF_8)
+        val pack = ContentPackParser.parse(raw.toByteArray())
+        assertEquals(2, pack.units.size)
+        assertEquals(listOf("audio-source-check", "audio-repeat-check", "audio-seek-check"),
+            orderedLessons(pack).map { it.id })
+        assertFalse(lessonIsAvailable(pack, pack.lessons[1], emptyList()))
+        val first = LessonCompletion("first:v1", pack.lessons[0].id, 1, 1L,
+            "2026-10-02", "UTC", "first", pack.courseId)
+        assertTrue(lessonIsAvailable(pack, pack.lessons[1], listOf(first)))
+        assertEquals(pack.lessons[1].id, nextAvailableLesson(pack, listOf(first))?.id)
+        assertTrue(runCatching { ContentPackParser.parse(raw.replaceFirst(
+            "\"audio-seek-check\"", "\"audio-repeat-check\"").toByteArray()) }.isFailure)
+        val selfLocked = JSONObject(raw)
+        selfLocked.getJSONArray("lessons").getJSONObject(0)
+            .put("prerequisiteConceptIds", JSONArray().put("first-cue"))
+        assertTrue(runCatching {
+            ContentPackParser.parse(selfLocked.toString().toByteArray())
+        }.isFailure)
+    }
+
+    @Test fun lessonStageSurvivesReopenAndRepeatDoesNotChangeStudyEvidence() = runBlocking {
+        val name = "journey-v7-verification.db"
+        context.deleteDatabase(name)
+        val pack = ContentPackParser.parse(fixture())
+        val lesson = pack.lessons.first()
+        val db = LearningDatabase.open(context, name)
+        val dao = db.learningDao()
+        val journey = JourneyRepository(db, dao,
+            Clock.fixed(Instant.parse("2026-10-02T12:00:00Z"), ZoneOffset.UTC))
+        journey.begin(pack.courseId, lesson)
+        journey.setStage(pack.courseId, lesson, LessonStage.Takeaway)
+        db.close()
+        val reopened = LearningDatabase.open(context, name)
+        val repo = JourneyRepository(reopened, reopened.learningDao(), Clock.systemUTC())
+        assertEquals(LessonStage.Takeaway,
+            reopened.learningDao().lessonJourney(pack.courseId, lesson.id, lesson.version)?.stageValue())
+        repo.begin(pack.courseId, lesson)
+        assertEquals(LessonStage.Takeaway,
+            reopened.learningDao().lessonJourney(pack.courseId, lesson.id, lesson.version)?.stageValue())
+        repo.begin(pack.courseId, lesson, repeat = true)
+        assertEquals(LessonStage.Intro,
+            reopened.learningDao().lessonJourney(pack.courseId, lesson.id, lesson.version)?.stageValue())
+        assertTrue(reopened.learningDao().lessonCompletions().isEmpty())
+        assertTrue(reopened.learningDao().studyDays().isEmpty())
+        reopened.close()
+        context.deleteDatabase(name)
+        Unit
     }
 
     @Test fun rejectedImportKeepsWorkingPack() {

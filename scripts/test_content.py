@@ -101,5 +101,18 @@ class SharedContractTests(unittest.TestCase):
   refs=[q['sourceRef'] for q in pack['lessons'][0]['questions']]
   self.assertEqual(['cue-a-lesson','cue-b-source'],[ref['segmentId'] for ref in refs])
   self.assertTrue(all(ref['startMs']>0 for ref in refs))
+ def test_guided_units_cover_lessons_once_in_order(self):
+  pack=json.loads(pathlib.Path('content/qa-passage-pack.json').read_text(encoding='utf8'))
+  self.assertEqual([],validate(pack))
+  self.assertEqual(['audio-source-check','audio-repeat-check','audio-seek-check'],
+                   [lesson for unit in pack['units'] for lesson in unit['lessonIds']])
+  pack['units'][0]['lessonIds'].append('audio-source-check')
+  self.assertTrue(any('repeated lesson' in e for e in validate(pack)))
+  pack['units'][0]['lessonIds']=['audio-source-check']
+  pack['units'][1]['lessonIds']=['audio-repeat-check']
+  self.assertTrue(any('every lesson' in e for e in validate(pack)))
+  pack=json.loads(pathlib.Path('content/qa-passage-pack.json').read_text(encoding='utf8'))
+  pack['lessons'][0]['prerequisiteConceptIds']=['first-cue']
+  self.assertTrue(any('earlier path lesson' in e for e in validate(pack)))
 
 if __name__ == '__main__': unittest.main()

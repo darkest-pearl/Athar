@@ -28,3 +28,9 @@ Milestone 1 is complete; this is a development prototype, not a reviewed release
 
 ## Next action
 The review team selects the first beginner course and prepares one complete, versioned source-linked sample lesson for language/religious review and the Sheikh's periodic checkpoint. Beginner curriculum and public package decisions remain distinct from the supplied Nawaqid intake test. Continue on a new task branch only for the next approved task after main is verified/synchronized.
+
+## Milestone 3 guided-learning branch checkpoint - 21 October 2026
+
+Source-passage playback and draggable seeking merged in PR #11. Main at the start of guided work was `a70a8f025e4c8849ef8d0fd2894fa9cc17664c50`. The current guided feature branch adds a validated unit path, neutral three-lesson fixture, persisted objective/listen/takeaway/practice journey, real progress and participation signals, feedback, and interruption recovery. Room 6-to-7 is an explicit additive `LessonJourney` migration. [Build, connected-device, screenshot, and walkthrough evidence](evidence/m3-guided/README.md) and the [bounded Duolingo study](research/duolingo-experience-study.md) describe the checks. This is a branch checkpoint; PR merge and main CI are confirmed only after GitHub integration.
+
+The first reviewed teaching lesson is still awaiting course/order selection, supplied Tigrinya and religious text, source boundaries, and answer review. Neutral fixtures and emulator verification do not constitute publication approval or physical-device listening validation. Original recordings remain untouched and outside Git.
