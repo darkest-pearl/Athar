@@ -1,4 +1,4 @@
-﻿# Milestone 1 status · 1 October 2026
+# Milestone 1 status · 1 October 2026
 
 ## Outcome
 First runnable Athar native Android prototype implemented and verified. App source commit c9a994ff779b998d12bfaed0addbf20696a67e12; CI setup fix 933f741. PR #1 (https://github.com/darkest-pearl/Athar/pull/1) merged as c49c015940c22a0c33d774a22319ca945c61600f; main CI run 36826407912 passed. This section records the milestone 1 snapshot. Current milestone 2 work is described in docs/MILESTONE2_STATUS.md.
@@ -42,3 +42,9 @@ Guided learning PR #12 merged as `fadb2d83af2e764601811fa89d052041bf492469` afte
 ## Visual lesson polish branch checkpoint - 22 October 2026
 
 `feat/learning-screen-polish` focuses Objective/Listen/Takeaway/Practice. It adds a compact study scaffold with persistent bottom action, player-first hierarchy, selected and saved-answer treatments, and grouped exact-source expansion without altering Room, content identity or recording selection. Local build/lint/JVM, 21 connected Android tests, 17 Python content tests and neutral-pack validation passed. Screenshots at 360x640dp, 360x800dp, 150% font, 640x360dp landscape and zero animator scale are recorded in [visual-polish evidence](evidence/visual-polish/README.md). A source panel overlap found during emulator inspection was fixed before final capture. This is a branch checkpoint; PR and main CI results are recorded only after integration.
+
+## Visual experience integration and path branch checkpoint - 22 October 2026
+
+Focused lesson/practice polish merged in [PR #14](https://github.com/darkest-pearl/Athar/pull/14) as `0cd55cfc6eca3756d39fff334285978eeaf05889`. Its PR CI run 39675195292 and post-merge main CI run 39675540308 passed; local and remote main matched before the next branch. `feat/path-progress-polish` then added compact Home, connected collapsible unit path, saved-progress completion, and earned/pending milestones. A node number changed under recomposition during device review and was fixed by deriving it from authored order. A 150% Path header collision and crowded bottom labels were also corrected before final capture. No Room schema, completion algorithm or original recording changed.
+
+The branch's final local debug APK SHA-256 is `EDDB17FC408E17A1AABAD9E130490564C2A03F90D5AAA660F7BCD02C943220E9`. Path now keeps course/version-scoped scroll position independently of new lesson/question resets. Emulator checks on this build restored the same Unit 1 anchor after unfinished and completed lesson exits, tab switches, revisit and rotation; the current node stayed collapsed until tapped. Build/lint/JVM, 21 connected Android tests (0 failures/errors), 17 Python content tests and neutral-pack validation passed. [Visual evidence](evidence/visual-polish/README.md) includes fresh 0/3-to-1/3 lesson screenshots, a local continuous walkthrough with interruption/reopen, tall/landscape/150%/zero-motion captures, and honest audio/hardware limits. The [first Tigrinya UI priority list](review/FIRST_TIGRINYA_UI_PRIORITY.md) orders existing untranslated copy for review. This is a branch checkpoint; PR and post-merge main CI are confirmed separately after integration.

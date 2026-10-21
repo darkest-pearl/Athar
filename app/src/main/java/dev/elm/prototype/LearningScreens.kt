@@ -26,6 +26,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 
 fun orderedLessons(pack: ContentPack): List<PackLesson> = pack.units.flatMap { unit ->
     unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
@@ -84,39 +88,53 @@ fun nextAvailableLesson(pack: ContentPack, completions: List<LessonCompletion>):
 @Composable
 fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
     journeys: List<LessonJourney>, dueCount: Int, streak: StreakStats, studiedToday: Boolean,
-    open: (PackLesson) -> Unit, openPath: () -> Unit, openReviews: () -> Unit) {
+    open: (PackLesson) -> Unit, openPath: () -> Unit, openReviews: () -> Unit,
+    resumeLesson: (() -> Unit)? = null) {
     val next = nextAvailableLesson(pack, completions)
     val continuing = next != null && journeys.any { it.courseId == pack.courseId &&
         it.lessonId == next.id && it.lessonVersion == next.version &&
         it.stageValue() in listOf(LessonStage.Listen, LessonStage.Takeaway, LessonStage.Practice) }
-    Title(stringResource(R.string.today_title_guided))
-    Note(pack.courseTitle)
-    Panel {
-        Text(stringResource(R.string.today_path_label), style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary)
-        Text(next?.title ?: stringResource(R.string.path_all_complete),
-            style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif)
-        if (next != null) Action(stringResource(if (continuing) R.string.continue_lesson
-            else R.string.start_lesson), click = { open(next) })
-        else Action(stringResource(R.string.explore_path), click = openPath)
-        CourseProgress(pack.lessons.count { lessonIsComplete(it, completions) },
-            pack.lessons.size, stringResource(R.string.course_progress_label))
-        Note(next?.objective?.ifBlank { next.notes }
-            ?: stringResource(R.string.path_all_complete_note))
+    if (LocalConfiguration.current.screenHeightDp >= 500)
+        Text(stringResource(R.string.today_title_guided), style = MaterialTheme.typography.headlineMedium,
+            fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
+    Surface(color = MaterialTheme.colorScheme.primaryContainer,
+        shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(stringResource(R.string.today_path_label), style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary)
+            Text(next?.title ?: stringResource(R.string.path_all_complete),
+                style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
+            if (next != null) Action(stringResource(if (resumeLesson != null) R.string.session_continue_action
+                else if (continuing) R.string.continue_lesson else R.string.start_lesson),
+                click = { if (resumeLesson != null) resumeLesson() else open(next) })
+            else Action(stringResource(R.string.explore_path), click = openPath)
+            val done = pack.lessons.count { lessonIsComplete(it, completions) }
+            Text(stringResource(R.string.path_count, done, pack.lessons.size),
+                style = MaterialTheme.typography.labelLarge)
+            LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
+                else done.toFloat() / pack.lessons.size }, modifier = Modifier.fillMaxWidth().height(6.dp))
+        }
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(20.dp), modifier = Modifier.weight(1f)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("◎", style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.primary)
                 Text(stringResource(R.string.daily_goal_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open))
+                Text(stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open),
+                    style = MaterialTheme.typography.bodyMedium)
             }
         }
         Surface(color = MaterialTheme.colorScheme.surface,
             shape = RoundedCornerShape(20.dp), modifier = Modifier.weight(1f)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("✦", style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.tertiary)
                 Text(stringResource(R.string.streak_title), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.streak_current, streak.current))
+                Text(stringResource(R.string.streak_current, streak.current),
+                    style = MaterialTheme.typography.bodyMedium)
             }
         }
     }
@@ -136,87 +154,123 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
     openReviews: () -> Unit) {
     var selectedId by rememberSaveable(pack.courseId) { mutableStateOf("") }
     val current = nextAvailableLesson(pack, completions)?.id
-    LaunchedEffect(current) { if (current != null) selectedId = current }
+    val doneCount = pack.lessons.count { lessonIsComplete(it, completions) }
+    val simplePath = LocalDensity.current.fontScale >= 1.3f ||
+        LocalConfiguration.current.screenWidthDp < 360
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-    Title(stringResource(R.string.path_title))
-    Note(pack.courseTitle)
-    CourseProgress(pack.lessons.count { lessonIsComplete(it, completions) },
-        pack.lessons.size, stringResource(R.string.course_progress_label))
-    if (dueCount > 0) Panel {
-        Text(stringResource(R.string.path_review_title), style = MaterialTheme.typography.titleLarge)
-        Note(stringResource(R.string.due_count, dueCount))
-        Action(stringResource(R.string.start_review_batch), click = openReviews)
-    }
-    var number = 0
-    pack.units.forEachIndexed { unitIndex, unit ->
-      Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        val lessons = unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
-        Text(stringResource(R.string.unit_number, unitIndex + 1),
-            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-        Text(unit.title, style = MaterialTheme.typography.headlineSmall, fontFamily = FontFamily.Serif,
-            modifier = Modifier.semantics { heading() })
-        CourseProgress(lessons.count { lessonIsComplete(it, completions) }, lessons.size,
-            stringResource(R.string.unit_progress_label))
-        lessons.forEachIndexed { index, lesson ->
-            number++
-            val done = lessonIsComplete(lesson, completions)
-            val available = lessonIsAvailable(pack, lesson, completions)
-            val isCurrent = lesson.id == current
-            val label = when {
-                done -> stringResource(R.string.path_state_done)
-                !available -> stringResource(R.string.path_state_locked)
-                isCurrent -> stringResource(R.string.path_state_current)
-                else -> stringResource(R.string.path_state_upcoming)
+        Text(stringResource(R.string.path_title), style = MaterialTheme.typography.headlineMedium,
+            fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
+        Text(pack.courseTitle, style = MaterialTheme.typography.titleMedium,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (simplePath) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(R.string.course_progress_label), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.path_count, doneCount, pack.lessons.size),
+                style = MaterialTheme.typography.labelLarge)
+        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.course_progress_label), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.path_count, doneCount, pack.lessons.size),
+                style = MaterialTheme.typography.labelLarge)
+        }
+        LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
+            else doneCount.toFloat() / pack.lessons.size },
+            modifier = Modifier.fillMaxWidth().height(6.dp))
+        if (dueCount > 0) Surface(color = MaterialTheme.colorScheme.tertiaryContainer,
+            shape = RoundedCornerShape(16.dp)) {
+            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.due_count, dueCount), modifier = Modifier.weight(1f))
+                TextButton(onClick = openReviews) { Text(stringResource(R.string.start_review_batch)) }
             }
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    val shape = if (done) RoundedCornerShape(18.dp) else CircleShape
-                    val nodeText = if (done) "✓" else number.toString()
-                    if (isCurrent) Button(onClick = { selectedId = lesson.id },
-                        modifier = Modifier.size(64.dp), shape = shape,
-                        contentPadding = PaddingValues(0.dp)) { Text(nodeText, fontSize = 22.sp) }
-                    else OutlinedButton(onClick = { selectedId = lesson.id },
-                        modifier = Modifier.size(64.dp), shape = shape,
-                        border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                        contentPadding = PaddingValues(0.dp)) { Text(nodeText, fontSize = 22.sp) }
-                    if (index + 1 < lessons.size) Surface(
-                        modifier = Modifier.width(3.dp).height(16.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) {}
-                }
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(lesson.title, style = MaterialTheme.typography.titleMedium,
-                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal)
-                    Text(label, color = MaterialTheme.colorScheme.primary)
-                    if (bookmarks.any { it.lessonId == lesson.id })
-                        Text(stringResource(R.string.bookmark_saved), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-            AnimatedVisibility(visible = selectedId == lesson.id,
-                enter = fadeIn(tween(180)), exit = fadeOut(tween(90))) {
-                Surface(color = MaterialTheme.colorScheme.secondaryContainer,
-                    shape = RoundedCornerShape(20.dp)) {
-                    Column(Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (!available && !done) Note(stringResource(R.string.path_prerequisite_note))
-                        else Action(stringResource(when {
-                            done -> R.string.revisit_lesson
-                            journeys.any { it.lessonId == lesson.id && it.lessonVersion == lesson.version &&
-                                it.stageValue() != LessonStage.Complete && it.stageValue() != LessonStage.Intro } ->
-                                R.string.session_continue_action
-                            else -> R.string.start_lesson
-                        })) { open(lesson) }
-                        Note(lesson.objective.ifBlank { lesson.notes })
-                        val segment = pack.segments.getValue(lesson.segmentRef)
-                        Text(stringResource(R.string.path_duration,
-                            formatAudioTime(segment.endMs - segment.startMs)),
-                            style = MaterialTheme.typography.labelLarge)
+        }
+        pack.units.forEachIndexed { unitIndex, unit ->
+            val lessons = unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
+            val unitDone = lessons.count { lessonIsComplete(it, completions) }
+            Surface(color = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.unit_number, unitIndex + 1),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary)
+                    Text(unit.title, style = MaterialTheme.typography.titleLarge,
+                        fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
+                    Text(stringResource(R.string.path_count, unitDone, lessons.size),
+                        style = MaterialTheme.typography.labelMedium)
+                    lessons.forEachIndexed { index, lesson ->
+                        val number = pack.units.take(unitIndex).sumOf { it.lessonIds.size } + index + 1
+                        val done = lessonIsComplete(lesson, completions)
+                        val available = lessonIsAvailable(pack, lesson, completions)
+                        val isCurrent = lesson.id == current
+                        val label = when {
+                            done -> stringResource(R.string.path_state_done)
+                            !available -> stringResource(R.string.path_state_locked)
+                            isCurrent -> stringResource(R.string.path_state_current)
+                            else -> stringResource(R.string.path_state_upcoming)
+                        }
+                        val indent = if (simplePath) 0.dp else if (number % 2 == 0) 20.dp else 0.dp
+                        Row(Modifier.fillMaxWidth().padding(start = indent),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                val shape = if (done) RoundedCornerShape(16.dp) else CircleShape
+                                if (isCurrent) Button(onClick = {
+                                    selectedId = if (selectedId == lesson.id) "" else lesson.id
+                                },
+                                    modifier = Modifier.size(56.dp), shape = shape,
+                                    contentPadding = PaddingValues(0.dp)) {
+                                    Text(if (done) "✓" else number.toString(), fontSize = 20.sp)
+                                } else OutlinedButton(onClick = {
+                                    selectedId = if (selectedId == lesson.id) "" else lesson.id
+                                },
+                                    modifier = Modifier.size(56.dp), shape = shape,
+                                    border = BorderStroke(2.dp, if (available)
+                                        MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
+                                    contentPadding = PaddingValues(0.dp)) {
+                                    Text(if (done) "✓" else if (available) number.toString() else "•",
+                                        fontSize = 20.sp)
+                                }
+                                if (index < lessons.lastIndex) Surface(
+                                    modifier = Modifier.width(3.dp).height(18.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) {}
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(lesson.title, style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text(label, style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary)
+                                if (bookmarks.any { it.lessonId == lesson.id })
+                                    Text(stringResource(R.string.bookmark_saved),
+                                        style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                        AnimatedVisibility(selectedId == lesson.id,
+                            enter = fadeIn(tween(180)), exit = fadeOut(tween(90))) {
+                            Surface(color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    if (!available && !done)
+                                        Text(stringResource(R.string.path_prerequisite_note))
+                                    else Action(stringResource(when {
+                                        done -> R.string.revisit_lesson
+                                        journeys.any { it.lessonId == lesson.id &&
+                                            it.lessonVersion == lesson.version &&
+                                            it.stageValue() != LessonStage.Complete &&
+                                            it.stageValue() != LessonStage.Intro } ->
+                                            R.string.session_continue_action
+                                        else -> R.string.start_lesson
+                                    })) { open(lesson) }
+                                    Text(lesson.objective.ifBlank { lesson.notes },
+                                        style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
                     }
                 }
             }
+            if (unitIndex < pack.units.lastIndex) Surface(
+                modifier = Modifier.align(Alignment.CenterHorizontally).width(3.dp).height(14.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) {}
         }
-      }
-    }
     }
 }
 
@@ -327,19 +381,58 @@ fun QuizScreen(pack: ContentPack, lesson: PackLesson, index: Int, selectedIndex:
 }
 
 @Composable
-fun DoneScreen(lesson: PackLesson, streak: StreakStats, next: PackLesson?, openNext: () -> Unit,
-    openProgress: () -> Unit) {
-    LessonStageHeader(LessonStage.Complete, lesson.title)
-    Title(stringResource(R.string.lesson_complete))
-    if (next != null) {
-        Note(stringResource(R.string.next_lesson_label, next.title))
-        Action(stringResource(R.string.start_next_lesson), click = openNext)
-    } else Action(stringResource(R.string.see_progress), click = openProgress)
-    Panel { Note(stringResource(R.string.completion_note)) }
-    StreakPanel(streak, compact = true)
-    if (next != null) TextButton(onClick = openProgress,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-        Text(stringResource(R.string.see_progress))
+fun DoneScreen(pack: ContentPack, lesson: PackLesson, completions: List<LessonCompletion>,
+    streak: StreakStats, studiedToday: Boolean, next: PackLesson?,
+    openNext: () -> Unit, openProgress: () -> Unit, openPath: () -> Unit) {
+    val done = pack.lessons.count { lessonIsComplete(it, completions) }
+    LessonScaffold(LessonStage.Complete, lesson.title, pack.developmentOnly,
+        onExit = openPath,
+        actionText = stringResource(if (next != null) R.string.start_next_lesson
+            else R.string.see_progress),
+        onAction = if (next != null) openNext else openProgress) {
+        Surface(color = MaterialTheme.colorScheme.primaryContainer,
+            shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Surface(color = MaterialTheme.colorScheme.primary, shape = CircleShape,
+                    modifier = Modifier.size(88.dp)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("✓", color = MaterialTheme.colorScheme.onPrimary,
+                            style = MaterialTheme.typography.displayMedium)
+                    }
+                }
+                Text(stringResource(R.string.lesson_complete),
+                    style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif)
+                Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+            }
+        }
+        Text(stringResource(R.string.path_count, done, pack.lessons.size),
+            style = MaterialTheme.typography.titleMedium)
+        LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
+            else done.toFloat() / pack.lessons.size }, modifier = Modifier.fillMaxWidth().height(8.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            CompletionMetric(stringResource(R.string.daily_goal_title),
+                stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open),
+                Modifier.weight(1f))
+            CompletionMetric(stringResource(R.string.streak_title),
+                stringResource(R.string.streak_current, streak.current), Modifier.weight(1f))
+        }
+        if (next != null) Text(stringResource(R.string.next_lesson_label, next.title),
+            style = MaterialTheme.typography.titleMedium)
+        TextButton(onClick = openProgress, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.see_progress))
+        }
+    }
+}
+
+@Composable private fun CompletionMetric(title: String, value: String, modifier: Modifier = Modifier) {
+    Surface(color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp), modifier = modifier) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary)
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -357,10 +450,10 @@ fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookm
         Note(stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open))
     }
     Title(stringResource(R.string.milestones_title))
-    if (current.isNotEmpty()) Panel { Note(stringResource(R.string.badge_first_lesson)) }
-    if (current.size >= pack.lessons.size) Panel { Note(stringResource(R.string.badge_course_path)) }
-    if (streak.totalDays >= 3) Panel { Note(stringResource(R.string.badge_three_days)) }
-    if (current.isEmpty() && streak.totalDays < 3) Note(stringResource(R.string.milestones_empty))
+    MilestoneBadge("✦", stringResource(R.string.badge_first_lesson), current.isNotEmpty())
+    MilestoneBadge("✓", stringResource(R.string.badge_course_path),
+        pack.lessons.isNotEmpty() && current.size >= pack.lessons.size)
+    MilestoneBadge("◎", stringResource(R.string.badge_three_days), streak.totalDays >= 3)
     StreakPanel(streak)
     Panel {
         Text(stringResource(R.string.progress_count, current.size), style = MaterialTheme.typography.headlineMedium)
@@ -376,6 +469,26 @@ fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookm
         Note(title)
     }
     Note(stringResource(R.string.progress_guest))
+    }
+}
+
+@Composable private fun MilestoneBadge(mark: String, title: String, earned: Boolean) {
+    Surface(color = if (earned) MaterialTheme.colorScheme.primaryContainer
+        else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Surface(shape = CircleShape, color = if (earned) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(48.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(mark, color = if (earned) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurface)
+                }
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text(stringResource(if (earned) R.string.badge_earned else R.string.badge_pending),
+                style = MaterialTheme.typography.labelMedium)
+        }
     }
 }
 
