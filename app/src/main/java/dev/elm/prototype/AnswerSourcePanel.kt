@@ -2,6 +2,8 @@ package dev.elm.prototype
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -14,6 +16,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun AnswerSourcePanel(pack: ContentPack, lesson: PackLesson, question: PackQuestion,
     onOpenLesson: (() -> Unit)? = null) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
     when (val ref = question.sourceRef) {
         is PackSourceRef.FixtureText -> {
             Panel {
@@ -41,6 +44,7 @@ fun AnswerSourcePanel(pack: ContentPack, lesson: PackLesson, question: PackQuest
     if (onOpenLesson != null) TextButton(onClick = onOpenLesson,
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
         Text(stringResource(R.string.open_surrounding_lesson))
+    }
     }
 }
 

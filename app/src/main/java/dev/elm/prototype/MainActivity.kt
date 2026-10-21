@@ -259,28 +259,34 @@ fun AtharApp(db: LearningDatabase) {
     ElmTheme(direction) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.safeDrawingPadding()) {
+                val focusedStudy = page == "Lesson" || page == "Quiz"
+                if (!focusedStudy) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.brand_name), fontFamily = FontFamily.Serif, fontSize = 32.sp,
                         fontWeight = FontWeight.Bold)
                     TextButton(onClick = { page = "Settings" }) { Text(stringResource(R.string.nav_settings)) }
                 }
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
+                }
+                Column(if (focusedStudy) Modifier.weight(1f).fillMaxWidth()
+                    else Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                   Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                      .padding(horizontal = 24.dp, vertical = 16.dp),
-                      verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                      .then(if (focusedStudy) Modifier.fillMaxHeight()
+                          else Modifier.padding(horizontal = 24.dp, vertical = 16.dp)),
+                      verticalArrangement = if (focusedStudy) Arrangement.Top
+                          else Arrangement.spacedBy(24.dp)) {
                     val active = pack
                     if (active == null) {
                         Title(stringResource(R.string.app_name))
                         Note(stringResource(R.string.content_error,
                             initial.exceptionOrNull()?.message ?: "invalid bundled pack"))
                     } else {
-                        Text(stringResource(if (active.developmentOnly) R.string.development_label
+                        if (!focusedStudy) Text(stringResource(if (active.developmentOnly) R.string.development_label
                             else R.string.local_pack_label),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
-                        if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
+                        if (!focusedStudy && error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                         val resolvedLessonId = if (page == "Quiz")
                             pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
@@ -348,7 +354,7 @@ fun AtharApp(db: LearningDatabase) {
                                 bookmarks.any { it.courseId == active.courseId && it.lessonId == lesson.id }, busy,
                                 lesson.prerequisiteConceptIds.count { concept ->
                                     eligible.any { it.conceptId == concept }
-                                },
+                                }, error,
                                 onBookmark = {
                                     busy = true
                                     scope.launch {
@@ -426,7 +432,7 @@ fun AtharApp(db: LearningDatabase) {
                                     mutableIntStateOf(saved.selected)
                                 }
                                 QuizScreen(active, lesson, saved.cursor,
-                                choice, saved.feedback, busy,
+                                choice, saved.feedback, busy, error,
                                 onSelect = {
                                     choice = it
                                     scope.launch { runCatching { sessions.updateInput(sessionId, selected = it) } }
@@ -472,7 +478,7 @@ fun AtharApp(db: LearningDatabase) {
                                             error = context.getString(R.string.completion_failed)
                                         } finally { busy = false }
                                     }
-                                })
+                                }, onExit = { page = "Learn" })
                             }
                             "Done" -> {
                                 val next = orderedLessons(active).firstOrNull { candidate ->
@@ -628,6 +634,7 @@ fun AtharApp(db: LearningDatabase) {
                     }
                   }
                 }
+                if (!focusedStudy) {
                 val destinationPage = when (page) {
                     "Lesson", "Quiz", "Done" -> "Learn"
                     else -> page
@@ -657,6 +664,7 @@ fun AtharApp(db: LearningDatabase) {
                                 style = MaterialTheme.typography.labelMedium)
                         }
                     }
+                }
                 }
             }
         }

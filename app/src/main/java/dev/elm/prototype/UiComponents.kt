@@ -2,9 +2,12 @@
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
@@ -14,6 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 
 enum class Direction { Garden, Editorial }
 
@@ -74,19 +80,48 @@ fun AnswerChoice(text: String, selected: Boolean, correct: Boolean, feedback: Bo
         selected -> stringResource(R.string.selected_prefix, text)
         else -> text
     }
+    val activeColor = when {
+        feedback && correct -> MaterialTheme.colorScheme.primaryContainer
+        feedback && selected -> MaterialTheme.colorScheme.tertiaryContainer
+        selected -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.surface
+    }
+    val fill by animateColorAsState(activeColor, animationSpec = spring(), label = "answer fill")
+    val border = when {
+        feedback && selected && !correct -> MaterialTheme.colorScheme.tertiary
+        selected || feedback && correct -> MaterialTheme.colorScheme.primary
+        else -> MaterialTheme.colorScheme.outline
+    }
+    val mark = when {
+        feedback && correct -> "✓"
+        selected -> "●"
+        else -> "○"
+    }
     if (feedback) {
         Surface(modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-            color = if (selected || correct) MaterialTheme.colorScheme.secondaryContainer
-                else MaterialTheme.colorScheme.surface,
+            color = fill,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-            Text(label, fontSize = 18.sp, modifier = Modifier.padding(16.dp))
+            border = BorderStroke(if (selected || correct) 2.dp else 1.dp, border)) {
+            Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(mark, fontSize = 20.sp, color = border)
+                Text(label, fontSize = 18.sp)
+            }
         }
     } else {
         OutlinedButton(onClick = onClick, enabled = !busy,
             modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                .semantics { this.selected = selected }) {
-            Text(label, fontSize = 18.sp)
+                .semantics { this.selected = selected },
+            colors = ButtonDefaults.outlinedButtonColors(containerColor = fill,
+                contentColor = MaterialTheme.colorScheme.onSurface),
+            border = BorderStroke(if (selected) 2.dp else 1.dp, border),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                RadioButton(selected = selected, onClick = null,
+                    modifier = Modifier.size(24.dp))
+                Text(label, fontSize = 18.sp)
+            }
         }
     }
 }
