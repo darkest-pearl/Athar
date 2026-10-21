@@ -204,7 +204,10 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson,
                 else R.string.verified_document_label
             AudioSource.Representative -> R.string.representative_label
         }
-        Text(context.getString(label), style = MaterialTheme.typography.titleMedium)
+        Text(recording.title.ifBlank { recording.id },
+            style = MaterialTheme.typography.titleMedium)
+        Text(context.getString(label), style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary)
         if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error)
         if (verifying) Note(context.getString(R.string.audio_verifying))
         if (source == AudioSource.Document && recording.sha256 == null && pack.developmentOnly)
@@ -212,6 +215,15 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson,
         val canSeek = loaded && duration > 0 && player.isCurrentMediaItemSeekable
         val shownPosition = dragPreview?.let { (it * duration).roundToLong().coerceIn(0, duration) }
             ?: position.coerceIn(0, duration.coerceAtLeast(0))
+        Button(onClick = {
+            if (playing) { store.save(loadedKey, player.currentPosition); player.pause() }
+            else { if (player.playbackState == Player.STATE_ENDED) player.seekTo(0); player.play() }
+        }, enabled = loaded && !verifying,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)) {
+            Text(context.getString(if (playing) R.string.pause_audio else if (passage != null && !full)
+                R.string.play_passage else R.string.play_audio))
+        }
         Slider(value = dragPreview ?: if (duration > 0) position.toFloat()
             .div(duration).coerceIn(0f, 1f) else 0f,
             onValueChange = { dragPreview = it },
@@ -241,15 +253,6 @@ fun AudioPanel(pack: ContentPack, lesson: PackLesson,
                     .semantics { contentDescription = context.getString(R.string.audio_skip_back_accessible) },
                 contentPadding = PaddingValues(horizontal = 8.dp)) {
                 Text(context.getString(R.string.audio_skip_back))
-            }
-            Button(onClick = {
-                if (playing) { store.save(loadedKey, player.currentPosition); player.pause() }
-                else { if (player.playbackState == Player.STATE_ENDED) player.seekTo(0); player.play() }
-            }, enabled = loaded && !verifying,
-                modifier = Modifier.weight(1.25f).heightIn(min = 56.dp),
-                contentPadding = PaddingValues(horizontal = 8.dp)) {
-                Text(context.getString(if (playing) R.string.pause_audio else if (passage != null && !full)
-                    R.string.play_passage else R.string.play_audio))
             }
             OutlinedButton(onClick = { player.seekTo((player.currentPosition + 10_000)
                 .coerceAtMost(duration)) }, enabled = canSeek,

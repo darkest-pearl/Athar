@@ -222,13 +222,30 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
 
 @Composable
 fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
-    bookmarked: Boolean, busy: Boolean, relatedCount: Int,
+    bookmarked: Boolean, busy: Boolean, relatedCount: Int, errorMessage: String?,
     onBookmark: () -> Unit, onStage: (LessonStage) -> Unit,
     onQuiz: () -> Unit, onQuickRecall: () -> Unit, onExit: () -> Unit) {
-    LessonStageHeader(stage, lesson.title, onExit)
+    val actionText = stringResource(when (stage) {
+        LessonStage.Intro -> R.string.start_listening
+        LessonStage.Listen -> R.string.continue_to_takeaway
+        LessonStage.Takeaway -> R.string.try_questions
+        LessonStage.Practice -> R.string.session_continue_action
+        LessonStage.Complete -> R.string.revisit_lesson
+    })
+    LessonScaffold(stage, lesson.title, pack.developmentOnly, onExit = onExit,
+        actionText = actionText, actionEnabled = !busy, saving = busy,
+        errorMessage = errorMessage, onAction = {
+            when (stage) {
+                LessonStage.Intro -> onStage(LessonStage.Listen)
+                LessonStage.Listen -> onStage(LessonStage.Takeaway)
+                LessonStage.Takeaway, LessonStage.Practice -> onQuiz()
+                LessonStage.Complete -> onStage(LessonStage.Intro)
+            }
+        }) {
     AnimatedContent(targetState = stage, label = "lesson stage") { visibleStage ->
-      Column(verticalArrangement = Arrangement.spacedBy(20.dp)) { when (visibleStage) {
+      Column(verticalArrangement = Arrangement.spacedBy(16.dp)) { when (visibleStage) {
         LessonStage.Intro -> {
+            Title(lesson.title)
             Panel {
                 Text(stringResource(R.string.lesson_objective_label),
                     style = MaterialTheme.typography.labelLarge)
@@ -237,7 +254,6 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
                 Text(stringResource(R.string.path_duration,
                     formatAudioTime(segment.endMs - segment.startMs)))
             }
-            Action(stringResource(R.string.start_listening), !busy) { onStage(LessonStage.Listen) }
             OutlinedButton(onClick = onBookmark, enabled = !busy,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(stringResource(if (bookmarked) R.string.bookmark_remove else R.string.bookmark_add))
@@ -249,55 +265,64 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
         }
         LessonStage.Listen -> {
             Title(stringResource(R.string.listen_stage_title))
-            Note(stringResource(R.string.listen_stage_note))
-            Action(stringResource(R.string.continue_to_takeaway), !busy) {
-                onStage(LessonStage.Takeaway)
-            }
             key(lesson.id) { AudioPanel(pack, lesson) }
+            Note(stringResource(R.string.listen_stage_note))
         }
         LessonStage.Takeaway -> {
             Title(stringResource(R.string.takeaway_stage_title))
             Panel { Note(lesson.takeaway.ifBlank { lesson.notes }) }
-            Action(stringResource(R.string.try_questions), !busy) { onQuiz() }
         }
         LessonStage.Practice -> {
             Title(stringResource(R.string.practice_stage_title))
             Note(stringResource(R.string.session_continue_note))
-            Action(stringResource(R.string.session_continue_action), !busy) { onQuiz() }
         }
         LessonStage.Complete -> {
             Title(stringResource(R.string.lesson_complete))
-            Action(stringResource(R.string.revisit_lesson), !busy) { onStage(LessonStage.Intro) }
         }
     } }
+    }
     }
 }
 
 @Composable
 fun QuizScreen(pack: ContentPack, lesson: PackLesson, index: Int, selectedIndex: Int,
-    feedback: Boolean, busy: Boolean,
-    onSelect: (Int) -> Unit, onCheck: () -> Unit, onNext: () -> Unit, onFinish: () -> Unit) {
+    feedback: Boolean, busy: Boolean, errorMessage: String?,
+    onSelect: (Int) -> Unit, onCheck: () -> Unit, onNext: () -> Unit, onFinish: () -> Unit,
+    onExit: () -> Unit) {
     val question = lesson.questions[index]
-    LessonStageHeader(LessonStage.Practice, lesson.title)
-    Note(stringResource(R.string.question_progress, index + 1, lesson.questions.size))
-    Note(question.prompt)
-    question.choices.forEachIndexed { choiceIndex, choice ->
-        AnswerChoice(choice, selectedIndex == choiceIndex, choiceIndex == question.correctIndex,
-            feedback, busy) { onSelect(choiceIndex) }
-    }
-    if (!feedback) Action(stringResource(R.string.check_answer), selectedIndex >= 0 && !busy, onCheck)
-    AnimatedVisibility(visible = feedback, enter = fadeIn(tween(180)), exit = fadeOut(tween(90))) {
-        Panel {
-            Text(stringResource(if (selectedIndex == question.correctIndex) R.string.correct_answer
-                else R.string.incorrect_answer), style = MaterialTheme.typography.titleLarge)
-            Note(question.explanation)
+    var sourceVisible by rememberSaveable(question.id, index) { mutableStateOf(false) }
+    LessonScaffold(LessonStage.Practice, lesson.title, pack.developmentOnly,
+        stepLabel = stringResource(R.string.question_progress, index + 1, lesson.questions.size),
+        onExit = onExit,
+        actionText = stringResource(if (!feedback) R.string.check_answer
+            else if (index + 1 < lesson.questions.size) R.string.next_question
+            else R.string.finish_lesson),
+        actionEnabled = !busy && (feedback || selectedIndex >= 0), saving = busy,
+        errorMessage = errorMessage,
+        onAction = { if (!feedback) onCheck() else if (index + 1 < lesson.questions.size)
+            onNext() else onFinish() }) {
+        Text(question.prompt, style = MaterialTheme.typography.headlineSmall)
+        question.choices.forEachIndexed { choiceIndex, choice ->
+            AnswerChoice(choice, selectedIndex == choiceIndex,
+                choiceIndex == question.correctIndex, feedback, busy) { onSelect(choiceIndex) }
         }
-    }
-    if (feedback) {
-        AnswerSourcePanel(pack, lesson, question)
-        if (index + 1 < lesson.questions.size)
-            Action(stringResource(R.string.next_question), !busy, onNext)
-        else Action(stringResource(R.string.finish_lesson), !busy, onFinish)
+        AnimatedVisibility(visible = feedback, enter = fadeIn(tween(180)),
+            exit = fadeOut(tween(90))) {
+            Panel {
+                Text(stringResource(if (selectedIndex == question.correctIndex)
+                    R.string.correct_answer else R.string.incorrect_answer),
+                    style = MaterialTheme.typography.titleLarge)
+                Note(question.explanation)
+            }
+        }
+        if (feedback) {
+            OutlinedButton(onClick = { sourceVisible = !sourceVisible },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                Text(stringResource(if (sourceVisible) R.string.hide_answer_source
+                    else R.string.source_passage_title))
+            }
+            AnimatedVisibility(sourceVisible) { AnswerSourcePanel(pack, lesson, question) }
+        }
     }
 }
 
