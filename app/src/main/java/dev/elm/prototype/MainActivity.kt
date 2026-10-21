@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Clock
@@ -229,6 +231,29 @@ fun AtharApp(db: LearningDatabase) {
         }
     }
     val scroll = rememberScrollState()
+    // Keep Path's position across tabs, lessons, and rotation.
+    // A different course or authored version starts at its own beginning.
+    val pathScroll = rememberScrollState()
+    var pathPosition by rememberSaveable(pack?.courseId, pack?.contentVersion) {
+        mutableIntStateOf(0)
+    }
+    val orientation = LocalConfiguration.current.orientation
+    val pathReady = completionSnapshot != null && journeySnapshot != null &&
+        reviewSnapshot != null && bookmarkSnapshot != null
+    LaunchedEffect(page, pathScroll) {
+        if (page == "Learn") snapshotFlow {
+            pathScroll.value to pathScroll.isScrollInProgress
+        }.collect { (position, moving) ->
+            if (moving) pathPosition = position
+        }
+    }
+    LaunchedEffect(page, orientation, pathReady, pack?.courseId, pack?.contentVersion) {
+        if (page == "Learn" && pathReady) {
+            withFrameNanos { }
+            withFrameNanos { }
+            pathScroll.scrollTo(pathPosition)
+        }
+    }
     val currentLesson = pack?.lessons?.firstOrNull { it.id == lessonId }
     val currentStage = if (currentLesson != null && pendingSessions.any {
             it.kind == "lesson" && it.courseId == pack?.courseId &&
@@ -238,7 +263,7 @@ fun AtharApp(db: LearningDatabase) {
                 it.lessonVersion == currentLesson?.version
         }?.stageValue() ?: LessonStage.Intro
     LaunchedEffect(page, lessonId, currentStage, questionIndex, reviewIndex, reviewFeedback) {
-        scroll.scrollTo(0)
+        if (page != "Learn") scroll.scrollTo(0)
     }
     BackHandler(page != "Today") {
         page = when (page) {
@@ -259,23 +284,29 @@ fun AtharApp(db: LearningDatabase) {
     ElmTheme(direction) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.safeDrawingPadding()) {
-                val focusedStudy = page == "Lesson" || page == "Quiz"
+                val focusedStudy = page == "Lesson" || page == "Quiz" || page == "Done"
+                val compactHeight = LocalConfiguration.current.screenHeightDp < 500
+                val largeText = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f
                 if (!focusedStudy) {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+                Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp,
+                    vertical = 0.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.brand_name), fontFamily = FontFamily.Serif, fontSize = 32.sp,
+                    Text(stringResource(R.string.brand_name), fontFamily = FontFamily.Serif,
+                        fontSize = if (compactHeight) 22.sp else 26.sp,
                         fontWeight = FontWeight.Bold)
                     TextButton(onClick = { page = "Settings" }) { Text(stringResource(R.string.nav_settings)) }
                 }
                 }
                 Column(if (focusedStudy) Modifier.weight(1f).fillMaxWidth()
-                    else Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll),
+                    else Modifier.weight(1f).fillMaxWidth().verticalScroll(
+                        if (page == "Learn") pathScroll else scroll),
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally) {
                   Column(Modifier.widthIn(max = 640.dp).fillMaxWidth()
-                      .then(if (focusedStudy) Modifier.fillMaxHeight()
-                          else Modifier.padding(horizontal = 24.dp, vertical = 16.dp)),
+                          .then(if (focusedStudy) Modifier.fillMaxHeight()
+                          else Modifier.padding(horizontal = 24.dp,
+                              vertical = if (compactHeight) 4.dp else 8.dp)),
                       verticalArrangement = if (focusedStudy) Arrangement.Top
-                          else Arrangement.spacedBy(24.dp)) {
+                          else Arrangement.spacedBy(if (compactHeight) 8.dp else 12.dp)) {
                     val active = pack
                     if (active == null) {
                         Title(stringResource(R.string.app_name))
@@ -308,29 +339,10 @@ fun AtharApp(db: LearningDatabase) {
                                     reviewSnapshot == null || bookmarkSnapshot == null) {
                                     Title(stringResource(R.string.session_loading_title))
                                 } else {
-                                if (resumable != null) Panel {
-                                    Text(stringResource(R.string.session_continue_title),
-                                        style = MaterialTheme.typography.titleMedium)
-                                    Note(stringResource(R.string.session_continue_note))
-                                    Action(stringResource(R.string.session_continue_action)) {
-                                        if (resumable.kind == "lesson") {
-                                            sessionId = resumable.id
-                                            lessonId = resumable.lessonId
-                                            questionIndex = resumable.cursor
-                                            selected = resumable.selected
-                                            feedback = resumable.feedback
-                                            page = "Quiz"
-                                        } else {
-                                            reviewSessionId = resumable.id
-                                            reviewReturnToLesson = false
-                                            page = "Review"
-                                        }
-                                    }
-                                }
                                 TodayScreen(active, localCompletions,
                                     journeys.filter { it.courseId == active.courseId },
                                     dueCount, streak, studiedToday, ::openLesson,
-                                    openPath = { page = "Learn" }) {
+                                    openPath = { page = "Learn" }, openReviews = {
                                     val pendingReview = pendingSessions.firstOrNull {
                                         it.courseId == active.courseId && it.kind == "review"
                                     }
@@ -338,7 +350,14 @@ fun AtharApp(db: LearningDatabase) {
                                         reviewSessionId = pendingReview.id
                                         page = "Review"
                                     } else startReviews()
-                                }
+                                }, resumeLesson = if (resumable?.kind == "lesson") {{
+                                    sessionId = resumable.id
+                                    lessonId = resumable.lessonId
+                                    questionIndex = resumable.cursor
+                                    selected = resumable.selected
+                                    feedback = resumable.feedback
+                                    page = "Quiz"
+                                }} else null)
                                 }
                             }
                             "Learn" -> if (completionSnapshot == null || journeySnapshot == null ||
@@ -485,9 +504,10 @@ fun AtharApp(db: LearningDatabase) {
                                     candidate.id != lesson.id && !lessonIsComplete(candidate, localCompletions) &&
                                         lessonIsAvailable(active, candidate, localCompletions)
                                 }
-                                DoneScreen(lesson, streak, next,
+                                DoneScreen(active, lesson, localCompletions, streak, studiedToday, next,
                                     openNext = { next?.let(::openLesson) },
-                                    openProgress = { page = "Progress" })
+                                    openProgress = { page = "Progress" },
+                                    openPath = { page = "Learn" })
                             }
                             "Review" -> {
                                 val savedReview = pendingSessions.firstOrNull {
@@ -639,7 +659,8 @@ fun AtharApp(db: LearningDatabase) {
                     "Lesson", "Quiz", "Done" -> "Learn"
                     else -> page
                 }
-                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp),
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp,
+                    vertical = if (compactHeight) 0.dp else 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     listOf("Today", "Learn", "Review", "Progress").forEach { destination ->
                         val label = when (destination) {
@@ -657,11 +678,12 @@ fun AtharApp(db: LearningDatabase) {
                                 containerColor = if (activeDestination)
                                     MaterialTheme.colorScheme.secondaryContainer else Color.Transparent),
                             contentPadding = PaddingValues(horizontal = 2.dp),
-                            modifier = Modifier.weight(1f).heightIn(min = 52.dp)
+                            modifier = Modifier.weight(1f).heightIn(min = if (compactHeight) 48.dp else 52.dp)
                                 .semantics { this.selected = activeDestination }) {
                             Text(stringResource(label), maxLines = 1, softWrap = false,
                                 overflow = TextOverflow.Ellipsis,
-                                style = MaterialTheme.typography.labelMedium)
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontSize = if (largeText) 12.sp else 14.sp))
                         }
                     }
                 }

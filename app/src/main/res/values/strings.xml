@@ -175,4 +175,6 @@
     <string name="badge_first_lesson">First lesson complete</string>
     <string name="badge_course_path">Current course path complete</string>
     <string name="badge_three_days">Studied on three days</string>
+    <string name="badge_earned">Earned</string>
+    <string name="badge_pending">To earn</string>
 </resources>
