@@ -59,11 +59,16 @@ fun AtharApp(db: LearningDatabase) {
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
     val study = remember(db, zone) { StudyRepository(db, dao, Clock.systemUTC(), zone) }
     val sessions = remember(db) { SessionRepository(db, dao, Clock.systemUTC()) }
+    val journeysRepo = remember(db) { JourneyRepository(db, dao, Clock.systemUTC()) }
+    val journeySnapshot by remember(dao) { dao.observeLessonJourneys() }
+        .collectAsState<List<LessonJourney>, List<LessonJourney>?>(initial = null)
+    val journeys = journeySnapshot.orEmpty()
     val pendingSessionSnapshot by remember(dao) { dao.observePendingSessions() }
         .collectAsState<List<PendingSession>, List<PendingSession>?>(initial = null)
     val pendingSessions = pendingSessionSnapshot.orEmpty()
-    val studyDays by remember(dao) { dao.observeStudyDays() }
-        .collectAsState(initial = emptyList())
+    val studyDaySnapshot by remember(dao) { dao.observeStudyDays() }
+        .collectAsState<List<StudyDayCredit>, List<StudyDayCredit>?>(initial = null)
+    val studyDays = studyDaySnapshot.orEmpty()
     val reviewClock = remember { Clock.systemUTC() }
     val reviews = remember(db) { ReviewRepository(db, dao, reviewClock) }
     val contentRepo = remember { ContentRepository(context) }
@@ -72,10 +77,12 @@ fun AtharApp(db: LearningDatabase) {
     val completionSnapshot by remember(dao) { dao.observeLessonCompletions() }
         .collectAsState<List<LessonCompletion>, List<LessonCompletion>?>(initial = null)
     val completions = completionSnapshot.orEmpty()
-    val bookmarks by remember(dao) { dao.observeBookmarks() }
-        .collectAsState(initial = emptyList())
-    val reviewStates by remember(dao) { dao.observeReviewStates() }
-        .collectAsState(initial = emptyList())
+    val bookmarkSnapshot by remember(dao) { dao.observeBookmarks() }
+        .collectAsState<List<Bookmark>, List<Bookmark>?>(initial = null)
+    val bookmarks = bookmarkSnapshot.orEmpty()
+    val reviewSnapshot by remember(dao) { dao.observeReviewStates() }
+        .collectAsState<List<ReviewState>, List<ReviewState>?>(initial = null)
+    val reviewStates = reviewSnapshot.orEmpty()
     var nowMillis by remember { mutableLongStateOf(reviewClock.millis()) }
     LaunchedEffect(Unit) { while (true) { nowMillis = reviewClock.millis(); delay(60_000) } }
     LaunchedEffect(pack, completionSnapshot) {
@@ -139,6 +146,20 @@ fun AtharApp(db: LearningDatabase) {
         }
     }
     fun startReviews(related: List<String> = emptyList(), returnToLesson: Boolean = false) {
+        if (reviewSnapshot == null || pendingSessionSnapshot == null) {
+            page = "Review"
+            return
+        }
+        if (related.isEmpty() && !returnToLesson) {
+            val pending = pendingSessions.firstOrNull { it.courseId == pack?.courseId &&
+                it.kind == "review" }
+            if (pending != null) {
+                reviewSessionId = pending.id
+                reviewReturnToLesson = false
+                page = "Review"
+                return
+            }
+        }
         val batch = selectReviewBatch(eligibleStates(), Instant.ofEpochMilli(nowMillis), related)
         val current = pack ?: return
         if (batch.isEmpty()) { page = "Review"; return }
@@ -186,19 +207,51 @@ fun AtharApp(db: LearningDatabase) {
         }
     }
     fun openLesson(lesson: PackLesson) {
-        lessonId = lesson.id
-        questionIndex = 0
-        selected = -1
-        feedback = false
-        sessionId = UUID.randomUUID().toString()
-        page = "Lesson"
+        val current = pack ?: return
+        busy = true
+        scope.launch {
+            try {
+                val completed = completions.any { it.courseId == current.courseId &&
+                    it.lessonId == lesson.id && it.version == lesson.version }
+                val pending = pendingSessions.any { it.courseId == current.courseId &&
+                    it.lessonId == lesson.id && it.lessonVersion == lesson.version &&
+                    it.kind == "lesson" }
+                journeysRepo.begin(current.courseId, lesson, repeat = completed && !pending)
+                lessonId = lesson.id
+                questionIndex = 0
+                selected = -1
+                feedback = false
+                sessionId = UUID.randomUUID().toString()
+                page = "Lesson"
+                error = null
+            } catch (_: Exception) { error = context.getString(R.string.study_save_failed) }
+            finally { busy = false }
+        }
     }
     val scroll = rememberScrollState()
-    LaunchedEffect(page, lessonId, questionIndex, reviewIndex, reviewFeedback) { scroll.scrollTo(0) }
+    val currentLesson = pack?.lessons?.firstOrNull { it.id == lessonId }
+    val currentStage = if (currentLesson != null && pendingSessions.any {
+            it.kind == "lesson" && it.courseId == pack?.courseId &&
+                it.lessonId == currentLesson.id && it.lessonVersion == currentLesson.version
+        }) LessonStage.Practice else journeys.firstOrNull {
+            it.courseId == pack?.courseId && it.lessonId == lessonId &&
+                it.lessonVersion == currentLesson?.version
+        }?.stageValue() ?: LessonStage.Intro
+    LaunchedEffect(page, lessonId, currentStage, questionIndex, reviewIndex, reviewFeedback) {
+        scroll.scrollTo(0)
+    }
     BackHandler(page != "Today") {
         page = when (page) {
             "Quiz" -> "Lesson"
-            "Lesson" -> "Learn"
+            "Lesson" -> if (currentLesson != null && currentStage in
+                listOf(LessonStage.Takeaway, LessonStage.Listen)) {
+                val previous = if (currentStage == LessonStage.Takeaway)
+                    LessonStage.Listen else LessonStage.Intro
+                scope.launch { try {
+                    journeysRepo.setStage(pack!!.courseId, currentLesson, previous)
+                } catch (_: Exception) { error = context.getString(R.string.study_save_failed) } }
+                "Lesson"
+            } else "Learn"
             "Review" -> if (reviewReturnToLesson) "Lesson" else "Today"
             else -> "Today"
         }
@@ -238,9 +291,17 @@ fun AtharApp(db: LearningDatabase) {
                         val dueCount = dueReviewCount(eligible, Instant.ofEpochMilli(nowMillis))
                         val streak = streakStats(studyDays,
                             Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate())
+                        val studiedToday = studyDays.any { it.studyDay ==
+                            Instant.ofEpochMilli(nowMillis).atZone(zone).toLocalDate().toString() }
+                        val localCompletions = completions.filter { it.courseId == active.courseId }
                         val resumable = pendingSessions.firstOrNull { it.courseId == active.courseId }
                         when (page) {
                             "Today" -> {
+                                if (completionSnapshot == null || pendingSessionSnapshot == null ||
+                                    journeySnapshot == null || studyDaySnapshot == null ||
+                                    reviewSnapshot == null || bookmarkSnapshot == null) {
+                                    Title(stringResource(R.string.session_loading_title))
+                                } else {
                                 if (resumable != null) Panel {
                                     Text(stringResource(R.string.session_continue_title),
                                         style = MaterialTheme.typography.titleMedium)
@@ -260,8 +321,10 @@ fun AtharApp(db: LearningDatabase) {
                                         }
                                     }
                                 }
-                                TodayScreen(active, completions.filter { it.courseId == active.courseId },
-                                    dueCount, streak, ::openLesson) {
+                                TodayScreen(active, localCompletions,
+                                    journeys.filter { it.courseId == active.courseId },
+                                    dueCount, streak, studiedToday, ::openLesson,
+                                    openPath = { page = "Learn" }) {
                                     val pendingReview = pendingSessions.firstOrNull {
                                         it.courseId == active.courseId && it.kind == "review"
                                     }
@@ -270,10 +333,18 @@ fun AtharApp(db: LearningDatabase) {
                                         page = "Review"
                                     } else startReviews()
                                 }
+                                }
                             }
-                            "Learn" -> CourseScreen(active, completions.filter { it.courseId == active.courseId },
-                                bookmarks.filter { it.courseId == active.courseId }, ::openLesson)
-                            "Lesson" -> LessonScreen(active, lesson,
+                            "Learn" -> if (completionSnapshot == null || journeySnapshot == null ||
+                                reviewSnapshot == null || bookmarkSnapshot == null) {
+                                Title(stringResource(R.string.session_loading_title))
+                            } else CourseScreen(active, localCompletions,
+                                bookmarks.filter { it.courseId == active.courseId },
+                                journeys.filter { it.courseId == active.courseId },
+                                dueCount, ::openLesson) { startReviews() }
+                            "Lesson" -> if (journeySnapshot == null || pendingSessionSnapshot == null) {
+                                Title(stringResource(R.string.session_loading_title))
+                            } else LessonScreen(active, lesson, currentStage,
                                 bookmarks.any { it.courseId == active.courseId && it.lessonId == lesson.id }, busy,
                                 lesson.prerequisiteConceptIds.count { concept ->
                                     eligible.any { it.conceptId == concept }
@@ -287,6 +358,17 @@ fun AtharApp(db: LearningDatabase) {
                                             else repo.bookmark(lesson.id, active.courseId)
                                         } catch (_: Exception) {
                                             error = context.getString(R.string.bookmark_failed)
+                                        } finally { busy = false }
+                                    }
+                                },
+                                onStage = { nextStage ->
+                                    busy = true
+                                    scope.launch {
+                                        try {
+                                            journeysRepo.setStage(active.courseId, lesson, nextStage)
+                                            error = null
+                                        } catch (_: Exception) {
+                                            error = context.getString(R.string.study_save_failed)
                                         } finally { busy = false }
                                     }
                                 },
@@ -307,6 +389,7 @@ fun AtharApp(db: LearningDatabase) {
                                             try {
                                                 val id = UUID.randomUUID().toString()
                                                 sessions.startLesson(active, lesson, id)
+                                                journeysRepo.setStage(active.courseId, lesson, LessonStage.Practice)
                                                 sessionId = id
                                                 questionIndex = 0; selected = -1; feedback = false
                                                 page = "Quiz"
@@ -318,7 +401,7 @@ fun AtharApp(db: LearningDatabase) {
                                 },
                                 onQuickRecall = {
                                     startReviews(lesson.prerequisiteConceptIds, true)
-                                })
+                                }, onExit = { page = "Learn" })
                             "Quiz" -> if (pendingSessionSnapshot == null) {
                                 Title(stringResource(R.string.session_loading_title))
                             } else if (pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
@@ -381,6 +464,8 @@ fun AtharApp(db: LearningDatabase) {
                                     scope.launch {
                                         try {
                                             study.completeLesson(lesson, sessionId, active.courseId)
+                                            runCatching { journeysRepo.setStage(active.courseId, lesson,
+                                                LessonStage.Complete) }
                                             page = "Done"
                                             error = null
                                         } catch (_: Exception) {
@@ -389,12 +474,20 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 })
                             }
-                            "Done" -> DoneScreen(streak) { page = "Progress" }
+                            "Done" -> {
+                                val next = orderedLessons(active).firstOrNull { candidate ->
+                                    candidate.id != lesson.id && !lessonIsComplete(candidate, localCompletions) &&
+                                        lessonIsAvailable(active, candidate, localCompletions)
+                                }
+                                DoneScreen(lesson, streak, next,
+                                    openNext = { next?.let(::openLesson) },
+                                    openProgress = { page = "Progress" })
+                            }
                             "Review" -> {
                                 val savedReview = pendingSessions.firstOrNull {
                                     it.id == reviewSessionId && it.kind == "review"
                                 }
-                                if (pendingSessionSnapshot == null ||
+                                if (pendingSessionSnapshot == null || reviewSnapshot == null ||
                                     (savedReview != null && (reviewBatch.map { it.conceptId } !=
                                         savedReview.items().map { it.conceptId } ||
                                         reviewIndex != savedReview.cursor))) {
@@ -517,9 +610,13 @@ fun AtharApp(db: LearningDatabase) {
                                     }
                                 }
                             }
-                            "Progress" -> ProgressScreen(active,
-                                completions.filter { it.courseId == active.courseId },
-                                bookmarks.filter { it.courseId == active.courseId }, streak)
+                            "Progress" -> if (completionSnapshot == null || studyDaySnapshot == null ||
+                                bookmarkSnapshot == null) {
+                                Title(stringResource(R.string.session_loading_title))
+                            } else ProgressScreen(active,
+                                localCompletions,
+                                bookmarks.filter { it.courseId == active.courseId }, streak,
+                                studiedToday)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
                                 onDirection = {
                                     direction = if (direction == Direction.Garden) Direction.Editorial
@@ -545,7 +642,9 @@ fun AtharApp(db: LearningDatabase) {
                             else -> R.string.nav_progress
                         }
                         val activeDestination = destinationPage == destination
-                        TextButton(onClick = { page = destination },
+                        TextButton(onClick = {
+                            if (destination == "Review") startReviews() else page = destination
+                        },
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.textButtonColors(
                                 containerColor = if (activeDestination)

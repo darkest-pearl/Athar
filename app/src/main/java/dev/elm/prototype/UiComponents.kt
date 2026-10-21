@@ -24,13 +24,23 @@ enum class Direction { Garden, Editorial }
         onPrimary = Color.White,
         background = Color(if (editorial) 0xFFF5F2FF else 0xFFFAF7EF),
         surface = Color(if (editorial) 0xFFFFFFFF else 0xFFFFFCF5),
+        surfaceVariant = Color(if (editorial) 0xFFE7E5F5 else 0xFFDFEBDD),
+        primaryContainer = Color(if (editorial) 0xFFDCE3FF else 0xFFD2E6D6),
+        onPrimaryContainer = Color(0xFF182E27),
+        outline = Color(if (editorial) 0xFF7E86A6 else 0xFF708879),
+        tertiary = Color(0xFF956022),
+        tertiaryContainer = Color(0xFFFAEBCB),
+        error = Color(0xFFB42318),
         onSurface = Color(0xFF182E27),
         onBackground = Color(0xFF182E27),
         secondaryContainer = Color(if (editorial) 0xFFFFD66E else 0xFFE4EBDD),
         onSecondaryContainer = Color(0xFF182E27)
     )
     MaterialTheme(colorScheme = scheme,
-        typography = Typography(bodyLarge = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, lineHeight = 28.sp)),
+        typography = Typography(
+            bodyLarge = androidx.compose.ui.text.TextStyle(fontSize = 18.sp, lineHeight = 28.sp),
+            titleMedium = androidx.compose.ui.text.TextStyle(fontSize = 20.sp, lineHeight = 28.sp),
+            labelLarge = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, lineHeight = 21.sp)),
         content = content)
 }
 

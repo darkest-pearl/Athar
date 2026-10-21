@@ -74,6 +74,21 @@ def validate(pack, publish=False):
     segments = index(collection(pack, "segments"), "segments")
     concepts = index(collection(pack, "concepts"), "concepts")
     lessons = index(collection(pack, "lessons"), "lessons")
+    if "units" in pack:
+        units = index(collection(pack, "units"), "units")
+        placed = set()
+        for uid, unit in units.items():
+            nonblank(unit.get("title"), f"units.{uid}.title")
+            lesson_ids = unit.get("lessonIds")
+            if not isinstance(lesson_ids, list) or not 1 <= len(lesson_ids) <= 100:
+                errors.append(f"units.{uid}.lessonIds: 1-100 IDs required")
+                continue
+            for lesson_id in lesson_ids:
+                if identifier(lesson_id, f"units.{uid}.lessonIds"):
+                    check(lesson_id in lessons, f"units.{uid}: unknown lesson {lesson_id}")
+                    check(lesson_id not in placed, f"units.{uid}: repeated lesson {lesson_id}")
+                    placed.add(lesson_id)
+        check(placed == set(lessons), "units: every lesson must appear exactly once")
 
     def authorized(ref, where):
         check(member(ref, permissions) and permissions[ref].get("status") == "authorized",
@@ -140,6 +155,9 @@ def validate(pack, publish=False):
         authorized(lesson.get("permissionRef"), where)
         if "notes" in lesson and lesson["notes"] is not None:
             nonblank(lesson["notes"], f"{where}.notes")
+        for field in ("objective", "takeaway"):
+            if field in lesson and lesson[field] is not None:
+                nonblank(lesson[field], f"{where}.{field}")
         prerequisites = lesson.get("prerequisiteConceptIds", [])
         if not isinstance(prerequisites, list):
             errors.append(f"{where}.prerequisiteConceptIds: array required")
@@ -200,6 +218,27 @@ def validate(pack, publish=False):
                         check(segment["startMs"] <= start < end <= segment["endMs"],
                               f"{qwhere}: invalid source passage")
                     integer(ref.get("contentVersion"), f"{qwhere}.sourceRef.contentVersion", 1)
+    if isinstance(pack.get("units"), list):
+        ordered_ids = [lesson_id for unit in pack["units"] if isinstance(unit, dict)
+                       for lesson_id in unit.get("lessonIds", [])
+                       if isinstance(unit.get("lessonIds"), list) and isinstance(lesson_id, str)]
+    else:
+        ordered_ids = list(lessons)
+    introduced = set()
+    for lesson_id in ordered_ids:
+        lesson = lessons.get(lesson_id)
+        if not lesson:
+            continue
+        prerequisites = lesson.get("prerequisiteConceptIds", [])
+        if isinstance(prerequisites, list):
+            for concept_id in prerequisites:
+                if isinstance(concept_id, str):
+                    check(concept_id in introduced,
+                          f"lessons.{lesson_id}: prerequisite must be introduced in an earlier path lesson")
+        questions = lesson.get("questions", [])
+        if isinstance(questions, list):
+            introduced.update(question.get("conceptId") for question in questions
+                              if isinstance(question, dict) and isinstance(question.get("conceptId"), str))
     return errors
 
 

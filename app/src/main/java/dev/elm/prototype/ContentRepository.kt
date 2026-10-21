@@ -26,8 +26,10 @@ data class PackQuestion(
 data class PackLesson(
     val id: String, val version: Int, val title: String, val language: String,
     val notes: String, val segmentRef: String, val permissionRef: String,
-    val questions: List<PackQuestion>, val prerequisiteConceptIds: List<String>
+    val questions: List<PackQuestion>, val prerequisiteConceptIds: List<String>,
+    val objective: String = "", val takeaway: String = ""
 )
+data class PackUnit(val id: String, val title: String, val lessonIds: List<String>)
 data class PackRecording(val id: String, val relativePath: String, val durationMs: Long,
     val title: String = "", val sha256: String? = null, val bytes: Long? = null)
 data class PackSegment(val id: String, val recordingId: String, val startMs: Long, val endMs: Long)
@@ -35,7 +37,7 @@ data class ContentPack(
     val courseId: String, val courseTitle: String, val contentVersion: Int,
     val developmentOnly: Boolean, val language: String, val lessons: List<PackLesson>,
     val recordings: Map<String, PackRecording>, val segments: Map<String, PackSegment>,
-    val canonicalJson: String
+    val canonicalJson: String, val units: List<PackUnit>
 )
 
 object ContentPackParser {
@@ -119,6 +121,8 @@ object ContentPackParser {
             val permissionRef = string(item, "permissionRef", where)
             authorized(permissions, permissionRef, where)
             val notes = optionalString(item, "notes", where)
+            val objective = optionalString(item, "objective", where)
+            val takeaway = optionalString(item, "takeaway", where)
             val prerequisites = optionalIds(item, "prerequisiteConceptIds", where, 20)
             require(prerequisites.all { it in concepts }) { "$where: unknown prerequisite concept" }
             val questionIds = linkedSetOf<String>()
@@ -173,11 +177,38 @@ object ContentPackParser {
                     explanation, source)
             }
             PackLesson(key, version, title, lessonLanguage, notes, segmentRef,
-                permissionRef, questions, prerequisites)
+                permissionRef, questions, prerequisites, objective, takeaway)
         }
         require(lessons.sumOf { it.questions.size } <= 1000) { "pack: too many questions" }
+        val units = if (root.has("units")) {
+            val used = linkedSetOf<String>()
+            val unitIds = linkedSetOf<String>()
+            entries(root, "units", "pack", 100).mapIndexed { index, item ->
+                val where = "units[$index]"
+                val unitId = id(item, where)
+                require(unitIds.add(unitId)) { "$where: duplicate unit ID" }
+                val title = string(item, "title", where)
+                val ids = optionalIds(item, "lessonIds", where, 100)
+                require(ids.isNotEmpty()) { "$where.lessonIds: nonempty array required" }
+                ids.forEach { lessonId ->
+                    require(lessons.any { it.id == lessonId }) { "$where: unknown lesson $lessonId" }
+                    require(used.add(lessonId)) { "$where: repeated lesson $lessonId" }
+                }
+                PackUnit(unitId, title, ids)
+            }.also { require(used == lessons.map { it.id }.toSet()) {
+                "units: every lesson must appear exactly once"
+            } }
+        } else listOf(PackUnit("course", courseTitle, lessons.map { it.id }))
+        val introduced = mutableSetOf<String>()
+        units.flatMap { it.lessonIds }.forEach { lessonId ->
+            val lesson = lessons.first { it.id == lessonId }
+            require(lesson.prerequisiteConceptIds.all { it in introduced }) {
+                "lessons.${lesson.id}: prerequisite must be introduced in an earlier path lesson"
+            }
+            introduced += lesson.questions.map { it.conceptId }
+        }
         return ContentPack(courseId, courseTitle, contentVersion, developmentOnly as Boolean,
-            language, lessons, recordings, segments, canonical(root))
+            language, lessons, recordings, segments, canonical(root), units)
     }
 
     private fun unique(map: Map<String, *>, key: String, where: String) {

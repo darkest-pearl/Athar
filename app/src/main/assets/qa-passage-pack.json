@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "contentVersion": 1,
+  "contentVersion": 2,
   "developmentOnly": true,
   "language": "en",
   "course": {
@@ -57,6 +57,29 @@
     },
     {
       "id": "other-cue"
+    },
+    {
+      "id": "replay-control"
+    },
+    {
+      "id": "seek-control"
+    }
+  ],
+  "units": [
+    {
+      "id": "listen",
+      "title": "Listen and find a source",
+      "lessonIds": [
+        "audio-source-check"
+      ]
+    },
+    {
+      "id": "practice",
+      "title": "Practice playback controls",
+      "lessonIds": [
+        "audio-repeat-check",
+        "audio-seek-check"
+      ]
     }
   ],
   "lessons": [
@@ -109,6 +132,83 @@
             "startMs": 2000,
             "endMs": 4000,
             "contentVersion": 1
+          },
+          "reviews": []
+        }
+      ]
+    },
+    {
+      "id": "audio-repeat-check",
+      "version": 1,
+      "title": "Replay a source",
+      "language": "en",
+      "state": "draft",
+      "segmentRef": "cue-b-source",
+      "permissionRef": "neutral-fixture",
+      "contentType": "audio-fixture",
+      "prerequisiteConceptIds": [
+        "first-cue"
+      ],
+      "objective": "Find and replay the exact answer passage.",
+      "takeaway": "A question can point to a different recording than its lesson.",
+      "notes": "Replay starts the answer passage again from its beginning. Full recording has a separate position.",
+      "reviews": [],
+      "questions": [
+        {
+          "id": "replay-question",
+          "version": 1,
+          "conceptId": "replay-control",
+          "prompt": "What does Replay passage do?",
+          "choices": [
+            "Start this passage again",
+            "Complete the lesson"
+          ],
+          "correctIndex": 0,
+          "explanation": "Replay returns to the beginning of the referenced passage; completion remains a separate action.",
+          "sourceRef": {
+            "kind": "recording-passage",
+            "segmentId": "cue-b-source",
+            "startMs": 6000,
+            "endMs": 8000,
+            "contentVersion": 2
+          },
+          "reviews": []
+        }
+      ]
+    },
+    {
+      "id": "audio-seek-check",
+      "version": 1,
+      "title": "Check the timeline",
+      "language": "en",
+      "state": "draft",
+      "segmentRef": "cue-a-lesson",
+      "permissionRef": "neutral-fixture",
+      "contentType": "audio-fixture",
+      "prerequisiteConceptIds": [
+        "replay-control"
+      ],
+      "objective": "Move the timeline and check what changes.",
+      "takeaway": "Moving the thumb changes playback position. It does not finish a lesson.",
+      "notes": "The thumb shows the current playable position. Completing a lesson requires the practice check.",
+      "reviews": [],
+      "questions": [
+        {
+          "id": "seek-question",
+          "version": 1,
+          "conceptId": "seek-control",
+          "prompt": "What does moving the audio thumb change?",
+          "choices": [
+            "Playback position",
+            "Lesson completion"
+          ],
+          "correctIndex": 0,
+          "explanation": "The timeline changes playback position; progress is saved after the knowledge check.",
+          "sourceRef": {
+            "kind": "fixture-text",
+            "lessonId": "audio-seek-check",
+            "contentVersion": 2,
+            "passage": "notes"
           },
           "reviews": []
         }
