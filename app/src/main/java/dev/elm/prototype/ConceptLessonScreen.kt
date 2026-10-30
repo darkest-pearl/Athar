@@ -52,7 +52,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onExit, modifier = Modifier.heightIn(min = 48.dp)) {
-                    Text("Exit to path")
+                    Text("Exit")
                 }
                 Spacer(Modifier.width(12.dp))
                 Text(lesson.title, style = MaterialTheme.typography.titleMedium,
