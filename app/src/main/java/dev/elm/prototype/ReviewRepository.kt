@@ -59,7 +59,9 @@ class ReviewRepository(private val db: LearningDatabase, private val dao: Learni
                 val chosen = sources.sortedWith(compareByDescending<Source> {
                     old != null && it.lesson.id == old.lessonId &&
                         it.question.id == old.questionId && it.question.version == old.questionVersion
-                }.thenByDescending { it.completion.completedAt }
+                }.thenByDescending { when (it.question.difficulty) {
+                    "recall" -> 3; "apply" -> 2; "distinguish" -> 1; else -> 0
+                } }.thenByDescending { it.completion.completedAt }
                     .thenBy { it.lesson.id }.thenBy { it.question.id }).first()
                 val unchanged = old != null && old.lessonId == chosen.lesson.id &&
                     old.questionId == chosen.question.id &&
