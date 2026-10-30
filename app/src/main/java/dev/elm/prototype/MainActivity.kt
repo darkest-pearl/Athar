@@ -61,6 +61,7 @@ fun AtharApp(db: LearningDatabase) {
     val repo = remember(dao) { LearningRepository(dao, Clock.systemUTC(), zone) }
     val study = remember(db, zone) { StudyRepository(db, dao, Clock.systemUTC(), zone) }
     val sessions = remember(db) { SessionRepository(db, dao, Clock.systemUTC()) }
+    val conceptSessions = remember(db) { ConceptSessionRepository(db, dao, Clock.systemUTC()) }
     val journeysRepo = remember(db) { JourneyRepository(db, dao, Clock.systemUTC()) }
     val journeySnapshot by remember(dao) { dao.observeLessonJourneys() }
         .collectAsState<List<LessonJourney>, List<LessonJourney>?>(initial = null)
@@ -215,16 +216,24 @@ fun AtharApp(db: LearningDatabase) {
             try {
                 val completed = completions.any { it.courseId == current.courseId &&
                     it.lessonId == lesson.id && it.version == lesson.version }
-                val pending = pendingSessions.any { it.courseId == current.courseId &&
+                val pending = pendingSessions.firstOrNull { it.courseId == current.courseId &&
                     it.lessonId == lesson.id && it.lessonVersion == lesson.version &&
-                    it.kind == "lesson" }
-                journeysRepo.begin(current.courseId, lesson, repeat = completed && !pending)
+                    it.kind == if (lesson.activities.isEmpty()) "lesson" else "concept" }
+                journeysRepo.begin(current.courseId, lesson, repeat = completed && pending == null)
                 lessonId = lesson.id
                 questionIndex = 0
                 selected = -1
                 feedback = false
-                sessionId = UUID.randomUUID().toString()
-                page = "Lesson"
+                if (lesson.activities.isNotEmpty()) {
+                    sessionId = if (pending != null && conceptSessionMatches(pending, current, lesson))
+                        pending.id else UUID.randomUUID().toString().also {
+                            conceptSessions.start(current, lesson, it)
+                        }
+                    page = "Concept"
+                } else {
+                    sessionId = UUID.randomUUID().toString()
+                    page = "Lesson"
+                }
                 error = null
             } catch (_: Exception) { error = context.getString(R.string.study_save_failed) }
             finally { busy = false }
@@ -267,6 +276,7 @@ fun AtharApp(db: LearningDatabase) {
     }
     BackHandler(page != "Today") {
         page = when (page) {
+            "Concept" -> "Learn"
             "Quiz" -> "Lesson"
             "Lesson" -> if (currentLesson != null && currentStage in
                 listOf(LessonStage.Takeaway, LessonStage.Listen)) {
@@ -284,7 +294,8 @@ fun AtharApp(db: LearningDatabase) {
     ElmTheme(direction) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.safeDrawingPadding()) {
-                val focusedStudy = page == "Lesson" || page == "Quiz" || page == "Done"
+                val focusedStudy = page == "Lesson" || page == "Quiz" ||
+                    page == "Concept" || page == "Done"
                 val compactHeight = LocalConfiguration.current.screenHeightDp < 500
                 val largeText = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f
                 if (!focusedStudy) {
@@ -319,8 +330,9 @@ fun AtharApp(db: LearningDatabase) {
                             color = MaterialTheme.colorScheme.primary)
                         if (!focusedStudy && error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
-                        val resolvedLessonId = if (page == "Quiz")
-                            pendingSessions.firstOrNull { it.id == sessionId && it.kind == "lesson" }
+                        val resolvedLessonId = if (page == "Quiz" || page == "Concept")
+                            pendingSessions.firstOrNull { it.id == sessionId &&
+                                it.kind == if (page == "Concept") "concept" else "lesson" }
                                 ?.lessonId ?: lessonId else lessonId
                         val lesson = active.lessons.firstOrNull { it.id == resolvedLessonId }
                             ?: active.lessons.first()
@@ -350,7 +362,14 @@ fun AtharApp(db: LearningDatabase) {
                                         reviewSessionId = pendingReview.id
                                         page = "Review"
                                     } else startReviews()
-                                }, resumeLesson = if (resumable?.kind == "lesson") {{
+                                }, resumeLesson = if (resumable?.kind == "concept" &&
+                                    active.lessons.any { it.id == resumable.lessonId &&
+                                        it.version == resumable.lessonVersion &&
+                                        conceptSessionMatches(resumable, active, it) }) {{
+                                    sessionId = resumable.id
+                                    lessonId = resumable.lessonId
+                                    page = "Concept"
+                                }} else if (resumable?.kind == "lesson") {{
                                     sessionId = resumable.id
                                     lessonId = resumable.lessonId
                                     questionIndex = resumable.cursor
@@ -367,6 +386,61 @@ fun AtharApp(db: LearningDatabase) {
                                 bookmarks.filter { it.courseId == active.courseId },
                                 journeys.filter { it.courseId == active.courseId },
                                 dueCount, ::openLesson) { startReviews() }
+                            "Concept" -> {
+                                val saved = pendingSessions.firstOrNull {
+                                    it.id == sessionId && it.kind == "concept"
+                                }
+                                if (pendingSessionSnapshot == null) {
+                                    Title(stringResource(R.string.session_loading_title))
+                                } else if (saved == null ||
+                                    !conceptSessionMatches(saved, active, lesson)) {
+                                    Title(stringResource(R.string.session_unavailable_title))
+                                    Note(stringResource(R.string.session_unavailable_note))
+                                    Action(stringResource(R.string.session_close_action)) {
+                                        scope.launch {
+                                            sessions.abandon(sessionId)
+                                            page = "Learn"
+                                        }
+                                    }
+                                } else {
+                                    fun save(action: suspend () -> Unit) {
+                                        if (busy) return
+                                        busy = true
+                                        scope.launch {
+                                            try {
+                                                action()
+                                                error = null
+                                            } catch (_: Exception) {
+                                                error = context.getString(R.string.study_save_failed)
+                                            } finally { busy = false }
+                                        }
+                                    }
+                                    ConceptLessonScreen(active, lesson, saved, busy, error,
+                                        onExit = { page = "Learn" },
+                                        onSelect = { index -> save {
+                                            conceptSessions.select(sessionId, index)
+                                        } },
+                                        onHint = { save { conceptSessions.useHint(sessionId) } },
+                                        onReveal = { save {
+                                            conceptSessions.reveal(sessionId, active, lesson)
+                                        } },
+                                        onSource = { save {
+                                            conceptSessions.viewSource(sessionId)
+                                        } },
+                                        onCheck = { save {
+                                            conceptSessions.check(sessionId, active, lesson)
+                                        } },
+                                        onNext = { save {
+                                            conceptSessions.advance(sessionId, active, lesson)
+                                        } },
+                                        onFinish = { save {
+                                            study.completeLesson(lesson, sessionId, active.courseId)
+                                            runCatching { journeysRepo.setStage(active.courseId, lesson,
+                                                LessonStage.Complete) }
+                                            page = "Done"
+                                        } })
+                                }
+                            }
                             "Lesson" -> if (journeySnapshot == null || pendingSessionSnapshot == null) {
                                 Title(stringResource(R.string.session_loading_title))
                             } else LessonScreen(active, lesson, currentStage,
