@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 2,
+  "contentVersion": 1,
+  "developmentOnly": true,
+  "language": "en",
+  "course": {
+    "id": "concept-lab",
+    "title": "Map skills · neutral development fixture"
+  },
+  "permissions": [
+    {
+      "id": "fixture-permission",
+      "status": "authorized"
+    }
+  ],
+  "recordings": [],
+  "segments": [],
+  "concepts": [
+    {
+      "id": "map-key"
+    },
+    {
+      "id": "route-plan"
+    }
+  ],
+  "textSources": [
+    {
+      "id": "map-lab",
+      "edition": "Athar neutral engineering notes, edition 1",
+      "permissionRef": "fixture-permission"
+    }
+  ],
+  "textPassages": [
+    {
+      "id": "map-key",
+      "version": 1,
+      "sourceId": "map-lab",
+      "locator": "Engineering note 1, complete authored paragraph",
+      "text": "A map key explains what a symbol means. A blue line in this practice map means a river.",
+      "wording": "summary"
+    },
+    {
+      "id": "route-plan",
+      "version": 1,
+      "sourceId": "map-lab",
+      "locator": "Engineering note 2, complete authored paragraph",
+      "text": "A route connects a start and a destination. First locate both, then follow the connecting path.",
+      "wording": "summary"
+    }
+  ],
+  "lessons": [
+    {
+      "id": "map-key-lesson",
+      "version": 1,
+      "title": "Read a map key",
+      "language": "en",
+      "state": "draft",
+      "permissionRef": "fixture-permission",
+      "notes": "A map key explains what a symbol means. A blue line in this practice map means a river.",
+      "objective": "Read a map key",
+      "takeaway": "Use the key belonging to that map; symbols can differ between maps.",
+      "prerequisiteConceptIds": [],
+      "questions": [
+        {
+          "id": "map-key-learn",
+          "version": 1,
+          "conceptId": "map-key",
+          "prompt": "What does a map key explain?",
+          "choices": [
+            "The meaning of a symbol",
+            "The battery level",
+            "The age of the paper"
+          ],
+          "correctIndex": 0,
+          "explanation": "Use the key belonging to that map; symbols can differ between maps.",
+          "difficulty": "recognise",
+          "hint": "A map key explains what a symbol means. A blue line in this practice map means a river.",
+          "sourceRef": {
+            "kind": "text-passage",
+            "passageId": "map-key",
+            "contentVersion": 1
+          }
+        },
+        {
+          "id": "map-key-apply",
+          "version": 1,
+          "conceptId": "map-key",
+          "prompt": "A dotted line appears on a new map. How do you find its meaning?",
+          "choices": [
+            "Assume every line means a river",
+            "Read the key for that map",
+            "Measure the paper"
+          ],
+          "correctIndex": 1,
+          "explanation": "Use the key belonging to that map; symbols can differ between maps.",
+          "difficulty": "apply",
+          "hint": "A map key explains what a symbol means. A blue line in this practice map means a river.",
+          "sourceRef": {
+            "kind": "text-passage",
+            "passageId": "map-key",
+            "contentVersion": 1
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "map-key-teach",
+          "kind": "concept",
+          "reference": "map-key"
+        },
+        {
+          "id": "map-key-supported",
+          "kind": "choice",
+          "reference": "map-key-learn"
+        },
+        {
+          "id": "map-key-explain",
+          "kind": "explanation",
+          "reference": "map-key"
+        },
+        {
+          "id": "map-key-later",
+          "kind": "choice",
+          "reference": "map-key-apply"
+        }
+      ]
+    },
+    {
+      "id": "route-plan-lesson",
+      "version": 1,
+      "title": "Plan a route",
+      "language": "en",
+      "state": "draft",
+      "permissionRef": "fixture-permission",
+      "notes": "A route connects a start and a destination. First locate both, then follow the connecting path.",
+      "objective": "Plan a route",
+      "takeaway": "A destination alone does not describe a route. Locate your start and the path between them.",
+      "prerequisiteConceptIds": [
+        "map-key"
+      ],
+      "questions": [
+        {
+          "id": "route-plan-learn",
+          "version": 1,
+          "conceptId": "route-plan",
+          "prompt": "What does a route connect?",
+          "choices": [
+            "Two random symbols",
+            "A start and a destination",
+            "A title and a date"
+          ],
+          "correctIndex": 1,
+          "explanation": "A destination alone does not describe a route. Locate your start and the path between them.",
+          "difficulty": "recognise",
+          "hint": "A route connects a start and a destination. First locate both, then follow the connecting path.",
+          "sourceRef": {
+            "kind": "text-passage",
+            "passageId": "route-plan",
+            "contentVersion": 1
+          }
+        },
+        {
+          "id": "route-plan-apply",
+          "version": 1,
+          "conceptId": "route-plan",
+          "prompt": "You found the library on a map. What else do you need to plan your walk?",
+          "choices": [
+            "Your starting point and a connecting path",
+            "Only the map title",
+            "Only the colour of the library symbol"
+          ],
+          "correctIndex": 0,
+          "explanation": "A destination alone does not describe a route. Locate your start and the path between them.",
+          "difficulty": "apply",
+          "hint": "A route connects a start and a destination. First locate both, then follow the connecting path.",
+          "sourceRef": {
+            "kind": "text-passage",
+            "passageId": "route-plan",
+            "contentVersion": 1
+          }
+        }
+      ],
+      "activities": [
+        {
+          "id": "route-plan-teach",
+          "kind": "concept",
+          "reference": "route-plan"
+        },
+        {
+          "id": "route-plan-supported",
+          "kind": "choice",
+          "reference": "route-plan-learn"
+        },
+        {
+          "id": "route-plan-explain",
+          "kind": "explanation",
+          "reference": "route-plan"
+        },
+        {
+          "id": "route-plan-later",
+          "kind": "choice",
+          "reference": "route-plan-apply"
+        }
+      ]
+    }
+  ],
+  "units": [
+    {
+      "id": "maps",
+      "title": "Map skills",
+      "lessonIds": [
+        "map-key-lesson",
+        "route-plan-lesson"
+      ]
+    }
+  ]
+}

@@ -280,7 +280,7 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
     onBookmark: () -> Unit, onStage: (LessonStage) -> Unit,
     onQuiz: () -> Unit, onQuickRecall: () -> Unit, onExit: () -> Unit) {
     val actionText = stringResource(when (stage) {
-        LessonStage.Intro -> R.string.start_listening
+        LessonStage.Intro -> if (lesson.segmentRef.isEmpty()) R.string.continue_to_takeaway else R.string.start_listening
         LessonStage.Listen -> R.string.continue_to_takeaway
         LessonStage.Takeaway -> R.string.try_questions
         LessonStage.Practice -> R.string.session_continue_action
@@ -290,7 +290,7 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
         actionText = actionText, actionEnabled = !busy, saving = busy,
         errorMessage = errorMessage, onAction = {
             when (stage) {
-                LessonStage.Intro -> onStage(LessonStage.Listen)
+                LessonStage.Intro -> onStage(if (lesson.segmentRef.isEmpty()) LessonStage.Takeaway else LessonStage.Listen)
                 LessonStage.Listen -> onStage(LessonStage.Takeaway)
                 LessonStage.Takeaway, LessonStage.Practice -> onQuiz()
                 LessonStage.Complete -> onStage(LessonStage.Intro)
@@ -304,9 +304,10 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
                 Text(stringResource(R.string.lesson_objective_label),
                     style = MaterialTheme.typography.labelLarge)
                 Note(lesson.objective.ifBlank { lesson.notes })
-                val segment = pack.segments.getValue(lesson.segmentRef)
-                Text(stringResource(R.string.path_duration,
-                    formatAudioTime(segment.endMs - segment.startMs)))
+                pack.segments[lesson.segmentRef]?.let { segment ->
+                    Text(stringResource(R.string.path_duration,
+                        formatAudioTime(segment.endMs - segment.startMs)))
+                }
             }
             OutlinedButton(onClick = onBookmark, enabled = !busy,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
@@ -319,7 +320,7 @@ fun LessonScreen(pack: ContentPack, lesson: PackLesson, stage: LessonStage,
         }
         LessonStage.Listen -> {
             Title(stringResource(R.string.listen_stage_title))
-            key(lesson.id) { AudioPanel(pack, lesson) }
+            if (lesson.segmentRef.isNotEmpty()) key(lesson.id) { AudioPanel(pack, lesson) }
             Note(stringResource(R.string.listen_stage_note))
         }
         LessonStage.Takeaway -> {

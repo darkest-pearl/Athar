@@ -21,6 +21,33 @@ class ContentAndMigrationTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private fun fixture() = context.assets.open("fixture-pack.json").use { it.readBytes() }
 
+    @Test fun textOnlyPackHasNoFabricatedAudioAndRejectsStalePassages() {
+        val bytes = context.assets.open("concept-fixture-pack.json").use { it.readBytes() }
+        val pack = ContentPackParser.parse(bytes)
+        assertTrue(pack.recordings.isEmpty())
+        assertTrue(pack.segments.isEmpty())
+        assertTrue(pack.lessons.all { it.segmentRef.isEmpty() })
+        assertEquals(4, pack.lessons.first().activities.size)
+        assertTrue(pack.lessons.first().questions.first().sourceRef is PackSourceRef.TextPassage)
+        val root = JSONObject(bytes.toString(Charsets.UTF_8))
+        root.getJSONArray("textPassages").getJSONObject(0).put("version", 2)
+        assertTrue(runCatching { ContentPackParser.parse(root.toString().toByteArray()) }.isFailure)
+    }
+
+    @Test fun immutableTextRejectsRewriteWithoutChangingTheActivePack() {
+        val sandbox = File(context.cacheDir, "text-identity-test").apply { mkdirs() }
+        val wrapped = object : ContextWrapper(context) { override fun getFilesDir(): File = sandbox }
+        val repo = ContentRepository(wrapped)
+        val bytes = context.assets.open("concept-fixture-pack.json").use { it.readBytes() }
+        val pack = repo.importBytes(bytes, repo.load())
+        val changed = JSONObject(bytes.toString(Charsets.UTF_8)).put("contentVersion", 2)
+        changed.getJSONArray("textPassages").getJSONObject(0).put("text", "Rewritten passage")
+        assertTrue(runCatching { repo.importBytes(changed.toString().toByteArray(), pack) }.isFailure)
+        assertEquals(pack.canonicalJson, repo.load().canonicalJson)
+        sandbox.listFiles()?.forEach { it.delete() }
+        sandbox.delete()
+    }
+
     @Test fun parserUsesTwoLessonsAndRejectsMalformedCandidates() {
         val bytes = fixture()
         val pack = ContentPackParser.parse(bytes)
@@ -28,7 +55,7 @@ class ContentAndMigrationTest {
         assertEquals(listOf("controls-fixture", "study-tools-fixture"), pack.lessons.map { it.id })
         val raw = bytes.toString(Charsets.UTF_8)
         val bad = listOf(
-            raw.replace("\"schemaVersion\": 1", "\"schemaVersion\": 2"),
+            raw.replace("\"schemaVersion\": 1", "\"schemaVersion\": 3"),
             raw.replace("Which control pauses playback?", " "),
             raw.replace("\"contentVersion\": 2", "\"contentVersion\": true"),
             raw.replaceFirst("\"id\": \"q1\"", "\"id\": \"q0\""),

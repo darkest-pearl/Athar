@@ -51,7 +51,7 @@ class RegressionTests(unittest.TestCase):
   for field in ('permissions','recordings','segments','concepts','lessons'):
    pack=copy.deepcopy(self.pack); del pack[field]
    with self.subTest(field=field): self.assertTrue(validate(pack))
-  self.pack['schemaVersion']=2; self.assert_bad('unsupported schema')
+  self.pack['schemaVersion']=3; self.assert_bad('unsupported schema')
  def test_invalid_references_and_state(self):
   self.pack['lessons'][0]['state']='invented'; self.assert_bad('invalid state')
   self.pack['lessons'][0]['questions'][0]['conceptId']='missing'; self.assert_bad('unknown concept')
@@ -114,5 +114,35 @@ class SharedContractTests(unittest.TestCase):
   pack=json.loads(pathlib.Path('content/qa-passage-pack.json').read_text(encoding='utf8'))
   pack['lessons'][0]['prerequisiteConceptIds']=['first-cue']
   self.assertTrue(any('earlier path lesson' in e for e in validate(pack)))
+
+class ConceptContractTests(unittest.TestCase):
+ def setUp(self):
+  from make_concept_fixture import make_pack
+  self.pack = make_pack()
+ def test_text_only_and_legacy_contracts(self):
+  self.assertEqual([], validate(self.pack))
+  self.assertFalse(self.pack['recordings']); self.assertFalse(self.pack['segments'])
+  self.assertTrue(validate(self.pack, True))
+ def test_text_sources_and_versions_are_required(self):
+  for field, value in [('sourceId','missing'), ('version',True), ('text',' '), ('wording','unknown')]:
+   pack=copy.deepcopy(self.pack); pack['textPassages'][0][field]=value
+   self.assertTrue(validate(pack), field)
+  self.pack['lessons'][0]['questions'][0]['sourceRef']['contentVersion']=2
+  self.assertTrue(validate(self.pack))
+ def test_authored_activities_and_optional_audio(self):
+  self.pack['lessons'][0]['activities'][0]['reference']='missing'
+  self.assertTrue(validate(self.pack))
+ def test_bundled_copy_matches_authoring_fixture(self):
+  self.assertEqual(self.pack, json.loads(pathlib.Path('app/src/main/assets/concept-fixture-pack.json').read_text(encoding='utf8')))
+ def test_production_text_needs_versioned_review(self):
+  self.pack['developmentOnly']=False
+  for lesson in self.pack['lessons']: lesson['state']='approved'
+  items=self.pack['textPassages'] + self.pack['lessons'] + [q for l in self.pack['lessons'] for q in l['questions']]
+  for item in items:
+   item['reviews']=[dict(role=role, reviewer='synthetic-test-reviewer', date='2026-10-30',
+                         version=1, result='approved') for role in ('language','religious')]
+  self.assertEqual([], validate(self.pack, True))
+  self.pack['textPassages'][0]['version']=2
+  self.assertTrue(validate(self.pack, True))
 
 if __name__ == '__main__': unittest.main()

@@ -36,12 +36,13 @@ def validate(pack, publish=False):
 
     def collection(parent, key, where="pack"):
         value = parent.get(key)
-        if not isinstance(value, list) or not value:
+        if not isinstance(value, list) or (not value and not (
+                pack.get('schemaVersion') == 2 and key in {'recordings', 'segments', 'textSources', 'textPassages'})):
             errors.append(f"{where}.{key}: nonempty collection required")
             return []
         maximum = 20 if key == "questions" else {
             "permissions": 100, "recordings": 100, "segments": 500,
-            "concepts": 500, "lessons": 100
+            "concepts": 500, "lessons": 100, "textPassages": 500, "activities": 60
         }.get(key, 100)
         check(len(value) <= maximum, f"{where}.{key}: at most {maximum} items")
         return value
@@ -59,8 +60,10 @@ def validate(pack, publish=False):
         return result
 
     pack = obj(pack, "pack")
-    check(type(pack.get("schemaVersion")) is int and pack.get("schemaVersion") == 1,
-          "pack.schemaVersion: unsupported schema version (expected 1)")
+    publish = publish or pack.get('developmentOnly') is False
+    check(type(pack.get("schemaVersion")) is int and pack.get("schemaVersion") in (1, 2),
+          "pack.schemaVersion: unsupported schema version (expected 1 or 2)")
+    schema2 = pack.get('schemaVersion') == 2
     integer(pack.get("contentVersion"), "pack.contentVersion", 1)
     nonblank(pack.get("language"), "pack.language")
     check(type(pack.get("developmentOnly")) is bool, "pack.developmentOnly: boolean required")
@@ -117,6 +120,21 @@ def validate(pack, publish=False):
         check({"language", "religious"}.issubset(roles),
               f"{where}: current-version language and religious reviews required")
 
+    text_sources = index(collection(pack, 'textSources'), 'textSources') if schema2 else {}
+    text_passages = index(collection(pack, 'textPassages'), 'textPassages') if schema2 else {}
+    for sid, source in text_sources.items():
+        nonblank(source.get('edition'), f'textSources.{sid}.edition')
+        authorized(source.get('permissionRef'), f'textSources.{sid}')
+    for pid, passage in text_passages.items():
+        where = f'textPassages.{pid}'
+        integer(passage.get('version'), where + '.version', 1)
+        check(member(passage.get('sourceId'), text_sources), where + ': unknown edition')
+        for field in ('locator', 'text'):
+            nonblank(passage.get(field), where + '.' + field)
+        check(member(passage.get('wording'), {'summary', 'quotation'}), where + ': invalid wording')
+        if publish:
+            reviewed(passage, where)
+
     for pid, permission in permissions.items():
         check(member(permission.get("status"), {"authorized", "pending", "revoked"}),
               f"permissions.{pid}.status: invalid status")
@@ -151,7 +169,8 @@ def validate(pack, publish=False):
         nonblank(lesson.get("title"), f"{where}.title")
         nonblank(lesson.get("language"), f"{where}.language")
         check(member(lesson.get("state"), STATES), f"{where}.state: invalid state")
-        check(member(lesson.get("segmentRef"), segments), f"{where}: unknown source segment")
+        if not schema2 or lesson.get('segmentRef') is not None:
+            check(member(lesson.get("segmentRef"), segments), f"{where}: unknown source segment")
         authorized(lesson.get("permissionRef"), where)
         if "notes" in lesson and lesson["notes"] is not None:
             nonblank(lesson["notes"], f"{where}.notes")
@@ -174,6 +193,11 @@ def validate(pack, publish=False):
         for qid, question in questions.items():
             qwhere = f"{where}.questions.{qid}"
             integer(question.get("version"), f"{qwhere}.version", 1)
+            if schema2 and 'difficulty' in question:
+                check(member(question.get('difficulty'), {'recognise', 'distinguish', 'apply', 'recall'}),
+                      f'{qwhere}: invalid difficulty')
+            if 'hint' in question and question['hint'] is not None:
+                nonblank(question['hint'], f'{qwhere}.hint')
             nonblank(question.get("prompt"), f"{qwhere}.prompt")
             nonblank(question.get("explanation"), f"{qwhere}.explanation")
             check(member(question.get("conceptId"), concepts), f"{qwhere}: unknown concept")
@@ -190,7 +214,16 @@ def validate(pack, publish=False):
             if integer(answer, f"{qwhere}.correctIndex"):
                 check(answer < len(choices), f"{qwhere}.correctIndex: out of range")
             ref = obj(question.get("sourceRef"), f"{qwhere}.sourceRef")
-            if publish:
+            if schema2 and ref.get('kind') == 'text-passage':
+                passage = text_passages.get(ref.get('passageId')) if isinstance(ref.get('passageId'), str) else None
+                integer(ref.get('contentVersion'), f'{qwhere}.sourceRef.contentVersion', 1)
+                check(passage is not None and type(ref.get('contentVersion')) is int
+                      and ref.get('contentVersion') == passage.get('version'),
+                      f'{qwhere}: unknown or stale text passage')
+                if publish:
+                    reviewed(question, qwhere)
+            elif publish:
+                check(ref.get('kind') in (None, 'recording-passage'), f'{qwhere}: invalid publication source kind')
                 segment = segments.get(ref.get("segmentId")) if isinstance(ref.get("segmentId"), str) else None
                 start, end = ref.get("startMs"), ref.get("endMs")
                 valid = segment is not None and type(start) is int and type(end) is int
@@ -218,6 +251,19 @@ def validate(pack, publish=False):
                         check(segment["startMs"] <= start < end <= segment["endMs"],
                               f"{qwhere}: invalid source passage")
                     integer(ref.get("contentVersion"), f"{qwhere}.sourceRef.contentVersion", 1)
+        if schema2:
+            activities = index(collection(lesson, 'activities', where), where + '.activities')
+            assessed = set()
+            for aid, activity in activities.items():
+                kind, ref = activity.get('kind'), activity.get('reference')
+                identifier(ref, where + '.activities.' + aid + '.reference')
+                valid = (kind in ('concept', 'explanation') and member(ref, text_passages)
+                         or kind == 'choice' and member(ref, questions)
+                         or kind == 'audio' and member(ref, segments) and ref == lesson.get('segmentRef'))
+                check(valid, where + '.activities.' + aid + ': invalid activity reference')
+                if kind == 'choice' and isinstance(ref, str):
+                    assessed.add(ref)
+            check(assessed == set(questions), where + ': every question needs an activity')
     if isinstance(pack.get("units"), list):
         ordered_ids = [lesson_id for unit in pack["units"] if isinstance(unit, dict)
                        for lesson_id in unit.get("lessonIds", [])

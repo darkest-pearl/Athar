@@ -270,7 +270,7 @@ fun AtharApp(db: LearningDatabase) {
             "Quiz" -> "Lesson"
             "Lesson" -> if (currentLesson != null && currentStage in
                 listOf(LessonStage.Takeaway, LessonStage.Listen)) {
-                val previous = if (currentStage == LessonStage.Takeaway)
+                val previous = if (currentStage == LessonStage.Takeaway && currentLesson.segmentRef.isNotEmpty())
                     LessonStage.Listen else LessonStage.Intro
                 scope.launch { try {
                     journeysRepo.setStage(pack!!.courseId, currentLesson, previous)
