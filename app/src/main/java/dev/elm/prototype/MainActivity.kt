@@ -86,6 +86,8 @@ fun AtharApp(db: LearningDatabase) {
     val reviewSnapshot by remember(dao) { dao.observeReviewStates() }
         .collectAsState<List<ReviewState>, List<ReviewState>?>(initial = null)
     val reviewStates = reviewSnapshot.orEmpty()
+    val answerSnapshot by remember(dao) { dao.observeAnswerEvents() }
+        .collectAsState<List<AnswerEvent>, List<AnswerEvent>?>(initial = null)
     var nowMillis by remember { mutableLongStateOf(reviewClock.millis()) }
     LaunchedEffect(Unit) { while (true) { nowMillis = reviewClock.millis(); delay(60_000) } }
     LaunchedEffect(pack, completionSnapshot) {
@@ -416,7 +418,8 @@ fun AtharApp(db: LearningDatabase) {
                                 } else {
                                     val activity = saved.conceptActivities()[saved.cursor]
                                     val currentQuestion = lesson.questions.firstOrNull {
-                                        activity.kind == "choice" && it.id == activity.reference
+                                        activity.kind in setOf("choice", "replay") &&
+                                            it.id == activity.reference
                                     }
                                     val restoredMood = when {
                                         activity.kind == "concept" || activity.kind == "explanation" ->
@@ -472,7 +475,7 @@ fun AtharApp(db: LearningDatabase) {
                                             val nextActivity = next.conceptActivities()[next.cursor]
                                             reactWithBook(when (nextActivity.kind) {
                                                 "concept", "explanation" -> BookMood.Explain
-                                                "choice" -> BookMood.Think
+                                                "choice", "replay" -> BookMood.Think
                                                 else -> BookMood.Idle
                                             })
                                         } },
@@ -756,12 +759,13 @@ fun AtharApp(db: LearningDatabase) {
                                 }
                             }
                             "Progress" -> if (completionSnapshot == null || studyDaySnapshot == null ||
-                                bookmarkSnapshot == null) {
+                                bookmarkSnapshot == null || reviewSnapshot == null ||
+                                answerSnapshot == null) {
                                 Title(stringResource(R.string.session_loading_title))
                             } else ProgressScreen(active,
                                 localCompletions,
                                 bookmarks.filter { it.courseId == active.courseId }, streak,
-                                studiedToday)
+                                studiedToday, eligibleStates(), answerSnapshot.orEmpty(), nowMillis)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
                                 reducedMotion, onReducedMotion = {
                                     reducedMotion = it

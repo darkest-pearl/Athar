@@ -60,6 +60,8 @@ data class LessonJourney(val courseId: String, val lessonId: String,
     @Query("SELECT * FROM LessonCompletion") suspend fun lessonCompletions(): List<LessonCompletion>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertLessonCompletion(value: LessonCompletion): Long
     @Query("SELECT * FROM AnswerEvent ORDER BY answeredAt ASC, id ASC") suspend fun answerEvents(): List<AnswerEvent>
+    @Query("SELECT * FROM AnswerEvent ORDER BY answeredAt ASC, id ASC")
+    fun observeAnswerEvents(): Flow<List<AnswerEvent>>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertAnswerEvent(value: AnswerEvent): Long
     @Query("SELECT * FROM AnswerEvent WHERE courseId=:courseId AND lessonId=:lessonId AND questionId=:questionId AND questionVersion=:version AND kind='lesson' ORDER BY answeredAt ASC, id ASC LIMIT 1")
     suspend fun firstLessonAttempt(lessonId: String, questionId: String, version: Int,

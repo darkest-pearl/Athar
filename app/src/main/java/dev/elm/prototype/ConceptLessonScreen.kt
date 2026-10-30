@@ -25,7 +25,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
     val activities = session.conceptActivities()
     val item = activities[session.cursor]
     val isLast = session.cursor == activities.lastIndex
-    val question = if (item.kind == "choice")
+    val question = if (item.kind in setOf("choice", "replay"))
         lesson.questions.first { it.id == item.reference } else null
     val firstCorrect = question != null && item.firstSelected == question.correctIndex
     val needsCorrection = question != null && session.feedback && !firstCorrect && !item.corrected
@@ -91,28 +91,33 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                     Text("Next, use the idea in a new situation with fewer cues.",
                         style = MaterialTheme.typography.bodyMedium)
                 }
-                "choice" -> {
-                    Text(when (question!!.difficulty) {
+                "choice", "replay" -> {
+                    val shown = question ?: error("Choice activity has no question")
+                    Text(if (item.kind == "replay") "Previous mistake" else when (shown.difficulty) {
                         "recognise" -> "Supported practice"
                         "apply" -> "Apply the idea"
                         "distinguish" -> "Tell the ideas apart"
                         else -> "Recall the idea"
-                    }, style = MaterialTheme.typography.labelLarge,
+                    },
+                        style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary)
-                    Text(question.prompt, style = MaterialTheme.typography.headlineSmall,
+                    if (item.kind == "replay") Text(
+                        "Try the missed question again. This is practice, not later retention.",
+                        style = MaterialTheme.typography.bodyMedium)
+                    Text(shown.prompt, style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.semantics { heading() })
                     item.choiceOrder.forEachIndexed { presented, original ->
-                        AnswerChoice(question.choices[original],
-                            session.selected == presented, original == question.correctIndex,
+                        AnswerChoice(shown.choices[original],
+                            session.selected == presented, original == shown.correctIndex,
                             session.feedback && !needsCorrection, busy) {
                             if (!session.feedback || needsCorrection) onSelect(presented)
                         }
                     }
-                    if (!session.feedback && question.hint.isNotBlank()) {
+                    if (!session.feedback && shown.hint.isNotBlank()) {
                         TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
                             Text(if (session.hinted) "Hint shown" else "Show hint")
                         }
-                        if (session.hinted) Panel { Note(question.hint) }
+                        if (session.hinted) Panel { Note(shown.hint) }
                     }
                     if (!session.feedback) TextButton(onClick = onReveal,
                         modifier = Modifier.heightIn(min = 48.dp)) { Text("Show answer") }
@@ -124,13 +129,13 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                                 modifier = Modifier.semantics {
                                     liveRegion = LiveRegionMode.Polite
                                 })
-                            Text("Answer: ${question.choices[question.correctIndex]}",
+                            Text("Answer: ${shown.choices[shown.correctIndex]}",
                                 style = MaterialTheme.typography.titleMedium)
                             if (!firstCorrect) Text(if (item.firstSelected >= 0)
-                                "Your first answer: ${question.choices[item.firstSelected]}"
+                                "Your first answer: ${shown.choices[item.firstSelected]}"
                                 else "You revealed the answer",
                                 style = MaterialTheme.typography.bodyMedium)
-                            Note(question.explanation)
+                            Note(shown.explanation)
                             if (!firstCorrect) Text(if (item.corrected)
                                 "You corrected this answer. Try it again later without a hint."
                                 else "Choose the explained answer to continue.",
@@ -144,7 +149,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                 }
             }
             if (item.kind == "concept" || item.kind == "explanation" ||
-                (item.kind == "choice" && session.feedback)) {
+                (item.kind in setOf("choice", "replay") && session.feedback)) {
                 OutlinedButton(onClick = {
                     sourceOpen = !sourceOpen
                     if (sourceOpen) onSource()

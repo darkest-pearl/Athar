@@ -438,7 +438,8 @@ fun DoneScreen(pack: ContentPack, lesson: PackLesson, completions: List<LessonCo
 
 @Composable
 fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmarks: List<Bookmark>,
-    streak: StreakStats, studiedToday: Boolean) {
+    streak: StreakStats, studiedToday: Boolean, reviewStates: List<ReviewState>,
+    answerEvents: List<AnswerEvent>, nowMillis: Long) {
     val current = completions.filter { completion ->
         pack.lessons.any { it.id == completion.lessonId && it.version == completion.version }
     }
@@ -448,6 +449,25 @@ fun ProgressScreen(pack: ContentPack, completions: List<LessonCompletion>, bookm
     Panel {
         Text(stringResource(R.string.daily_goal_title), style = MaterialTheme.typography.titleLarge)
         Note(stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open))
+    }
+    val conceptByQuestion = pack.lessons.flatMap { it.questions }
+        .associate { (it.id to it.version) to it.conceptId }
+    val practised = answerEvents.filter { it.courseId == pack.courseId && it.kind == "lesson" }
+        .mapNotNull { conceptByQuestion[it.questionId to it.questionVersion] }.toSet()
+    val corrected = answerEvents.filter { it.courseId == pack.courseId &&
+        it.kind == "correction" }
+        .mapNotNull { conceptByQuestion[it.questionId to it.questionVersion] }.toSet()
+    val states = reviewStates.filter { it.courseId == pack.courseId }
+    fun count(value: Int) = "$value concept${if (value == 1) "" else "s"}"
+    Panel {
+        Text("Concept learning", style = MaterialTheme.typography.titleLarge)
+        Note("${count(practised.size)} practised in lessons")
+        Note("${count(corrected.size)} with a corrected answer")
+        Note("${count(states.count { it.stage == 0 })} awaiting independent recall")
+        Note("${count(states.count { it.dueAt <= nowMillis })} due for review now")
+        Note("${count(states.count { it.stage >= 1 && it.lastReviewedAt != null })} recalled in a later due review")
+        Note("${count(states.count { it.stage >= 2 && it.lastReviewedAt != null })} recalled on repeated due reviews")
+        Note("A correction or same-lesson replay is practice. Only an unassisted due review advances recall.")
     }
     Title(stringResource(R.string.milestones_title))
     MilestoneBadge("✦", stringResource(R.string.badge_first_lesson), current.isNotEmpty())
