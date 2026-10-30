@@ -17,8 +17,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -519,7 +520,8 @@ fun SettingsScreen(pack: ContentPack, direction: Direction, importStatus: String
     Action(stringResource(if (direction == Direction.Garden) R.string.compare_editorial
         else R.string.use_garden), click = onDirection)
     Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
-        .clickable { onReducedMotion(!reducedMotion) },
+        .toggleable(value = reducedMotion, role = Role.Switch,
+            onValueChange = onReducedMotion),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween) {
         Text("Reduce character motion", style = MaterialTheme.typography.bodyLarge,
