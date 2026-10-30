@@ -2,6 +2,8 @@
 
 The bundled pack and SAF imports use this same development-preview contract. Publication adds human editorial checks; JSON review metadata records a claim and does not authenticate an approver.
 
+The backward-compatible [schema-2 text-first extension](TEXT_FIRST_CONTRACT.md) permits text-only lessons with immutable authored passages and ordered activities. The rules below describe legacy schema 1.
+
 - Root: object with schemaVersion exactly integer 1, positive integer contentVersion, nonblank language, boolean developmentOnly, course object, and nonempty permissions, recordings, segments, concepts, lessons arrays.
 - Each entity has a stable ID matching `[a-z][a-z0-9-]{0,63}`. IDs are unique within their own collection. Question IDs are unique within a lesson, so persistence identifies a question by (lesson ID, question ID, version).
 - Course requires ID and nonblank title. Permission status is authorized, pending, or revoked. Recordings require relativePath, positive durationMs, and an authorized permissionRef. Optional recording `title` is nonblank. Optional lowercase hex `sha256` and positive integer `bytes` must be supplied together; the player checks both against the entire locally selected file off the UI thread before using it as an answer source. Segments require a known recordingId and integer source start/end milliseconds with `0 <= start < end <= duration`.

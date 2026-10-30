@@ -18,6 +18,15 @@ fun AnswerSourcePanel(pack: ContentPack, lesson: PackLesson, question: PackQuest
     onOpenLesson: (() -> Unit)? = null) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
     when (val ref = question.sourceRef) {
+        is PackSourceRef.TextPassage -> {
+            val passage = pack.textPassages.getValue(ref.passageId)
+            Panel {
+                Text(stringResource(R.string.source_passage_title), style = MaterialTheme.typography.titleMedium)
+                Note(pack.textSources.getValue(passage.sourceId).edition)
+                Note("${passage.locator} · ${passage.wording} · v${passage.version}")
+                Note(passage.text)
+            }
+        }
         is PackSourceRef.FixtureText -> {
             Panel {
                 Text(stringResource(R.string.source_passage_title),

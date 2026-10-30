@@ -16,18 +16,25 @@ sealed interface PackSourceRef {
         val passage: String) : PackSourceRef
     data class RecordingPassage(val segmentId: String, override val contentVersion: Int,
         val startMs: Long, val endMs: Long) : PackSourceRef
+    data class TextPassage(val passageId: String, override val contentVersion: Int) : PackSourceRef
 }
+
+data class PackTextPassage(val id: String, val version: Int, val sourceId: String,
+    val locator: String, val text: String, val wording: String)
+data class PackTextSource(val id: String, val edition: String, val permissionRef: String)
+data class PackActivity(val id: String, val kind: String, val reference: String)
 
 data class PackQuestion(
     val id: String, val version: Int, val conceptId: String, val prompt: String,
     val choices: List<String>, val correctIndex: Int, val explanation: String,
-    val sourceRef: PackSourceRef
+    val sourceRef: PackSourceRef, val difficulty: String = "recognise", val hint: String = ""
 )
 data class PackLesson(
     val id: String, val version: Int, val title: String, val language: String,
     val notes: String, val segmentRef: String, val permissionRef: String,
     val questions: List<PackQuestion>, val prerequisiteConceptIds: List<String>,
-    val objective: String = "", val takeaway: String = ""
+    val objective: String = "", val takeaway: String = "",
+    val activities: List<PackActivity> = emptyList()
 )
 data class PackUnit(val id: String, val title: String, val lessonIds: List<String>)
 data class PackRecording(val id: String, val relativePath: String, val durationMs: Long,
@@ -37,7 +44,9 @@ data class ContentPack(
     val courseId: String, val courseTitle: String, val contentVersion: Int,
     val developmentOnly: Boolean, val language: String, val lessons: List<PackLesson>,
     val recordings: Map<String, PackRecording>, val segments: Map<String, PackSegment>,
-    val canonicalJson: String, val units: List<PackUnit>
+    val canonicalJson: String, val units: List<PackUnit>,
+    val textSources: Map<String, PackTextSource> = emptyMap(),
+    val textPassages: Map<String, PackTextPassage> = emptyMap()
 )
 
 object ContentPackParser {
@@ -49,7 +58,8 @@ object ContentPackParser {
         require(bytes.size <= MAX_BYTES) { "Pack exceeds 256 KiB" }
         val root = try { JSONObject(bytes.toString(Charsets.UTF_8)) }
         catch (e: JSONException) { throw IllegalArgumentException("Malformed JSON: ${e.message}") }
-        require(number(root, "schemaVersion", "pack") == 1) { "Unsupported schema version (expected 1)" }
+        val schema = number(root, "schemaVersion", "pack")
+        require(schema in 1..2) { "Unsupported schema version (expected 1 or 2)" }
         val contentVersion = number(root, "contentVersion", "pack", 1)
         val developmentOnly = root.opt("developmentOnly")
         require(developmentOnly is Boolean) { "pack.developmentOnly: boolean required" }
@@ -67,7 +77,7 @@ object ContentPackParser {
             permissions[key] = status
         }
         val recordings = linkedMapOf<String, PackRecording>()
-        entries(root, "recordings", "pack", 100).forEachIndexed { index, item ->
+        entries(root, "recordings", "pack", 100, schema == 2).forEachIndexed { index, item ->
             val where = "recordings[$index]"
             val key = id(item, where)
             unique(recordings, key, where)
@@ -91,7 +101,7 @@ object ContentPackParser {
                 optionalString(item, "title", where), checksum, size)
         }
         val segments = linkedMapOf<String, PackSegment>()
-        entries(root, "segments", "pack", 500).forEachIndexed { index, item ->
+        entries(root, "segments", "pack", 500, schema == 2).forEachIndexed { index, item ->
             val where = "segments[$index]"
             val key = id(item, where)
             unique(segments, key, where)
@@ -101,6 +111,28 @@ object ContentPackParser {
             val end = longNumber(item, "endMs", where, 1)
             require(start < end && end <= recording.durationMs) { "$where: invalid source timestamps" }
             segments[key] = PackSegment(key, recordingId, start, end)
+        }
+        val textSources = linkedMapOf<String, PackTextSource>()
+        val textPassages = linkedMapOf<String, PackTextPassage>()
+        if (schema == 2) {
+            entries(root, "textSources", "pack", 100, true).forEach { item ->
+                val key = id(item, "textSources")
+                unique(textSources, key, "textSources")
+                val permission = string(item, "permissionRef", "textSources.$key")
+                authorized(permissions, permission, "textSources.$key")
+                textSources[key] = PackTextSource(key, string(item, "edition", "textSources.$key"), permission)
+            }
+            entries(root, "textPassages", "pack", 500, true).forEach { item ->
+                val key = id(item, "textPassages")
+                unique(textPassages, key, "textPassages")
+                val source = string(item, "sourceId", "textPassages.$key")
+                require(source in textSources) { "textPassages.$key: unknown edition" }
+                val wording = string(item, "wording", "textPassages.$key")
+                require(wording in setOf("summary", "quotation")) { "Invalid passage wording" }
+                textPassages[key] = PackTextPassage(key, number(item, "version", "textPassages.$key", 1),
+                    source, string(item, "locator", "textPassages.$key"),
+                    string(item, "text", "textPassages.$key"), wording)
+            }
         }
         val concepts = linkedSetOf<String>()
         entries(root, "concepts", "pack", 500).forEachIndexed { index, item ->
@@ -116,8 +148,9 @@ object ContentPackParser {
             val title = string(item, "title", where)
             val lessonLanguage = string(item, "language", where)
             require(string(item, "state", where) in states) { "$where.state: invalid state" }
-            val segmentRef = string(item, "segmentRef", where)
-            require(segmentRef in segments) { "$where: unknown source segment" }
+            val segmentRef = if (schema == 2) optionalString(item, "segmentRef", where)
+                else string(item, "segmentRef", where)
+            require(segmentRef.isEmpty() || segmentRef in segments) { "$where: unknown source segment" }
             val permissionRef = string(item, "permissionRef", where)
             authorized(permissions, permissionRef, where)
             val notes = optionalString(item, "notes", where)
@@ -148,7 +181,13 @@ object ContentPackParser {
                 val correctIndex = number(question, "correctIndex", qwhere)
                 require(correctIndex < choices.size) { "$qwhere.correctIndex: out of range" }
                 val sourceRef = objectField(question, "sourceRef", qwhere)
-                val source = if (sourceRef.optString("kind") == "fixture-text") {
+                val source = if (schema == 2 && sourceRef.optString("kind") == "text-passage") {
+                    val passage = textPassages[string(sourceRef, "passageId", "$qwhere.sourceRef")]
+                        ?: throw IllegalArgumentException("$qwhere: unknown text passage")
+                    val versionRef = number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
+                    require(versionRef == passage.version) { "$qwhere: stale text passage version" }
+                    PackSourceRef.TextPassage(passage.id, versionRef)
+                } else if (sourceRef.optString("kind") == "fixture-text") {
                     require(sourceRef.optString("lessonId") == key) { "$qwhere: invalid fixture source lesson" }
                     val sourceVersion = number(sourceRef, "contentVersion", "$qwhere.sourceRef", 1)
                     val passage = string(sourceRef, "passage", "$qwhere.sourceRef")
@@ -173,11 +212,34 @@ object ContentPackParser {
                     PackSourceRef.RecordingPassage(sourceSegment.id, sourceVersion,
                         sourceStart, sourceEnd)
                 }
+                val difficulty = if (schema == 2 && question.has("difficulty"))
+                    string(question, "difficulty", qwhere) else "recognise"
+                require(difficulty in setOf("recognise", "distinguish", "apply", "recall")) {
+                    "$qwhere: invalid difficulty"
+                }
                 PackQuestion(qid, qversion, conceptId, prompt, choices, correctIndex,
-                    explanation, source)
+                    explanation, source, difficulty, optionalString(question, "hint", qwhere))
             }
+            val activities = if (schema == 2) entries(item, "activities", where, 60).map { activity ->
+                val aid = id(activity, "$where.activities")
+                val kind = string(activity, "kind", "$where.activities.$aid")
+                val ref = string(activity, "reference", "$where.activities.$aid")
+                require(idPattern.matches(ref)) { "$where.activities.$aid: invalid stable reference" }
+                require(when (kind) {
+                    "concept", "explanation" -> ref in textPassages
+                    "choice" -> questions.any { it.id == ref }
+                    "audio" -> ref == segmentRef && ref in segments
+                    else -> false
+                }) { "$where.activities.$aid: invalid activity reference" }
+                PackActivity(aid, kind, ref)
+            }.also { list ->
+                require(list.map { it.id }.distinct().size == list.size) { "$where: duplicate activity ID" }
+                require(questions.all { q -> list.any { it.kind == "choice" && it.reference == q.id } }) {
+                    "$where: every question needs an activity"
+                }
+            } else emptyList()
             PackLesson(key, version, title, lessonLanguage, notes, segmentRef,
-                permissionRef, questions, prerequisites, objective, takeaway)
+                permissionRef, questions, prerequisites, objective, takeaway, activities)
         }
         require(lessons.sumOf { it.questions.size } <= 1000) { "pack: too many questions" }
         val units = if (root.has("units")) {
@@ -207,8 +269,36 @@ object ContentPackParser {
             }
             introduced += lesson.questions.map { it.conceptId }
         }
+        if (!developmentOnly) {
+            fun reviewed(item: JSONObject, where: String) {
+                val reviews = item.optJSONArray("reviews") ?: JSONArray()
+                val roles = (0 until reviews.length()).mapNotNull { index ->
+                    val review = reviews.optJSONObject(index) ?: return@mapNotNull null
+                    val date = runCatching { java.time.LocalDate.parse(review.optString("date")) }.isSuccess
+                    if (date && review.optString("reviewer").isNotBlank() &&
+                        review.optInt("version") == item.optInt("version") && review.optString("result") == "approved")
+                        review.optString("role") else null
+                }.toSet()
+                require(roles.containsAll(setOf("language", "religious"))) { "$where: current-version reviews required" }
+            }
+            entries(root, "segments", "pack", 500, schema == 2).forEach {
+                require(it.opt("boundaryReviewed") == true) { "Segment boundary unreviewed" }
+            }
+            if (schema == 2) entries(root, "textPassages", "pack", 500, true).forEach { reviewed(it, "textPassages") }
+            entries(root, "lessons", "pack", 100).forEach { lesson ->
+                require(lesson.optString("state") in setOf("approved", "published")) { "Lesson is not approved" }
+                reviewed(lesson, "lesson")
+                entries(lesson, "questions", "lesson", 20).forEach { q ->
+                    reviewed(q, "question")
+                    val ref = q.getJSONObject("sourceRef")
+                    require(ref.optString("kind") != "fixture-text") { "Fixture source cannot be published" }
+                    if (ref.optString("kind") != "text-passage")
+                        require(ref.optInt("contentVersion") == contentVersion) { "Source content version is stale" }
+                }
+            }
+        }
         return ContentPack(courseId, courseTitle, contentVersion, developmentOnly as Boolean,
-            language, lessons, recordings, segments, canonical(root), units)
+            language, lessons, recordings, segments, canonical(root), units, textSources, textPassages)
     }
 
     private fun unique(map: Map<String, *>, key: String, where: String) {
@@ -260,8 +350,12 @@ object ContentPackParser {
         require(result.length() in 1..maximum) { "$where.$field: 1-$maximum items required" }
         return result
     }
-    private fun entries(item: JSONObject, field: String, where: String, maximum: Int): List<JSONObject> {
-        val values = array(item, field, where, maximum)
+    private fun entries(item: JSONObject, field: String, where: String, maximum: Int,
+        allowEmpty: Boolean = false): List<JSONObject> {
+        val values = if (allowEmpty) (item.opt(field) as? JSONArray
+            ?: throw IllegalArgumentException("$where.$field: array required")).also {
+                require(it.length() <= maximum) { "$where.$field: too many items" }
+            } else array(item, field, where, maximum)
         return (0 until values.length()).map { index ->
             values.opt(index) as? JSONObject
                 ?: throw IllegalArgumentException("$where.$field[$index]: object required")
@@ -343,6 +437,10 @@ class ContentRepository(private val context: Context) {
         }
         addEntries("recordings") { "recording/${it.getString("id")}" }
         addEntries("segments") { "segment/${it.getString("id")}" }
+        if (root.optInt("schemaVersion") == 2) {
+            addEntries("textSources") { "text-source/${it.getString("id")}" }
+            addEntries("textPassages") { "text-passage/${it.getString("id")}/v${it.getInt("version")}" }
+        }
         val lessons = root.getJSONArray("lessons")
         for (index in 0 until lessons.length()) {
             val lesson = lessons.getJSONObject(index)
