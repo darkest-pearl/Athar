@@ -9,6 +9,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -19,6 +21,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -62,6 +66,11 @@ fun BookCompanion(mood: BookMood, eventId: Int = 0, playEvent: Boolean = false,
     reducedMotion: Boolean = false, onEventStarted: () -> Unit = {},
     size: Dp = 132.dp) {
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenWidth = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeight = with(density) { configuration.screenHeightDp.dp.toPx() }
+    var visible by remember { mutableStateOf(true) }
     val lifecycle = (context as? LifecycleOwner)?.lifecycle
     var resumed by remember(lifecycle) {
         mutableStateOf(lifecycle?.currentState?.isAtLeast(Lifecycle.State.RESUMED) ?: true)
@@ -91,11 +100,11 @@ fun BookCompanion(mood: BookMood, eventId: Int = 0, playEvent: Boolean = false,
     val eyelids = remember { Animatable(0f) }
     val settle = remember { Animatable(0f) }
 
-    LaunchedEffect(eventId, mood, motion, resumed) {
+    LaunchedEffect(eventId, mood, motion, resumed, visible) {
         body.snapTo(0f); wave.snapTo(0f); bookmark.snapTo(0f); feet.snapTo(0f)
         if (eventId <= 0 || !playEvent || !resumed) return@LaunchedEffect
         onEventStarted()
-        if (!motion) return@LaunchedEffect
+        if (!motion || !visible) return@LaunchedEffect
         when (mood) {
             BookMood.Welcome, BookMood.Return -> {
                 repeat(2) {
@@ -149,18 +158,18 @@ fun BookCompanion(mood: BookMood, eventId: Int = 0, playEvent: Boolean = false,
             BookMood.Idle -> Unit
         }
     }
-    LaunchedEffect(mood, motion, resumed) {
+    LaunchedEffect(mood, motion, resumed, visible) {
         eyelids.snapTo(0f)
-        if (!motion || !resumed) return@LaunchedEffect
+        if (!motion || !resumed || !visible) return@LaunchedEffect
         while (true) {
             delay(3900)
             eyelids.animateTo(1f, tween(85))
             eyelids.animateTo(0f, tween(120))
         }
     }
-    LaunchedEffect(mood, motion, resumed) {
+    LaunchedEffect(mood, motion, resumed, visible) {
         settle.snapTo(0f)
-        if (!motion || !resumed || mood != BookMood.Idle) return@LaunchedEffect
+        if (!motion || !resumed || !visible || mood != BookMood.Idle) return@LaunchedEffect
         while (true) {
             delay(5200)
             settle.animateTo(-1.2f, tween(600))
@@ -171,7 +180,11 @@ fun BookCompanion(mood: BookMood, eventId: Int = 0, playEvent: Boolean = false,
     val coverDark = Color(0xFF164732)
     val page = Color(0xFFFFF3D9)
     val ink = Color(0xFF18342A)
-    Canvas(Modifier.size(size).semantics {
+    Canvas(Modifier.size(size).onGloballyPositioned { coordinates ->
+        val bounds = coordinates.boundsInWindow()
+        visible = bounds.right > 0f && bounds.left < screenWidth &&
+            bounds.bottom > 0f && bounds.top < screenHeight
+    }.semantics {
         contentDescription = "Book companion: " + mood.description
     }) {
         val unitScale = minOf(this.size.width, this.size.height) / 160f
