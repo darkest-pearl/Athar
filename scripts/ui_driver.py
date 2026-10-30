@@ -36,6 +36,24 @@ def has(text):
     return any(text in n.get('text', '') for n in tree().iter('node'))
 
 
+def seek_text(text):
+    """Find text in a scrollable Compose screen, including content below the fold."""
+    for _ in range(8):
+        root = tree()
+        if any(text in n.get('text', '') for n in root.iter('node')):
+            return True
+        scroll = next((n for n in root.iter('node') if n.get('scrollable') == 'true'), None)
+        if scroll is None:
+            return False
+        b = list(map(int, re.findall(r'\d+', scroll.get('bounds', ''))))
+        if len(b) != 4:
+            return False
+        x = str((b[0] + b[2]) // 2)
+        adb('shell', 'input', 'swipe', x, str(b[3] - 50), x, str(b[1] + 50), '300')
+        time.sleep(.5)
+    return False
+
+
 def tap(text):
     for _ in range(8):
         root = tree()

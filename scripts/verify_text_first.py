@@ -3,7 +3,7 @@
 Does not clear app data. Use only on a QA installation: the active pack is replaced.
 """
 import json
-from ui_driver import OUT, PKG, adb, capture, has, launch, tap
+from ui_driver import OUT, PKG, adb, capture, has, launch, seek_text, tap
 
 adb('shell', 'am', 'force-stop', PKG)
 adb('push', 'content/concept-fixture-pack.json', '/data/local/tmp/concept-fixture-pack.json')
@@ -28,8 +28,8 @@ tap('Continue study')
 assert has('Let’s look again')
 capture('text-feedback-restored')
 tap('Answer source')
+assert seek_text('Athar neutral engineering notes')
 capture('text-source')
-assert has('Athar neutral engineering notes')
 tap('Next question')
 tap('Read the key for that map')
 tap('Check answer')
