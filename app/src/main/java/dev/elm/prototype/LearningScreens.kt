@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
@@ -384,6 +385,8 @@ fun QuizScreen(pack: ContentPack, lesson: PackLesson, index: Int, selectedIndex:
 @Composable
 fun DoneScreen(pack: ContentPack, lesson: PackLesson, completions: List<LessonCompletion>,
     streak: StreakStats, studiedToday: Boolean, next: PackLesson?,
+    bookEventId: Int, bookPlayEvent: Boolean, reducedMotion: Boolean,
+    onBookEventStarted: () -> Unit,
     openNext: () -> Unit, openProgress: () -> Unit, openPath: () -> Unit) {
     val done = pack.lessons.count { lessonIsComplete(it, completions) }
     LessonScaffold(LessonStage.Complete, lesson.title, pack.developmentOnly,
@@ -395,13 +398,8 @@ fun DoneScreen(pack: ContentPack, lesson: PackLesson, completions: List<LessonCo
             shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Surface(color = MaterialTheme.colorScheme.primary, shape = CircleShape,
-                    modifier = Modifier.size(88.dp)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("✓", color = MaterialTheme.colorScheme.onPrimary,
-                            style = MaterialTheme.typography.displayMedium)
-                    }
-                }
+                BookCompanion(BookMood.Complete, bookEventId, bookPlayEvent,
+                    reducedMotion, onBookEventStarted, size = 150.dp)
                 Text(stringResource(R.string.lesson_complete),
                     style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif)
                 Text(lesson.title, style = MaterialTheme.typography.titleMedium)
@@ -508,6 +506,7 @@ fun StreakPanel(streak: StreakStats, compact: Boolean = false) {
 
 @Composable
 fun SettingsScreen(pack: ContentPack, direction: Direction, importStatus: String?,
+    reducedMotion: Boolean, onReducedMotion: (Boolean) -> Unit,
     onDirection: () -> Unit, onImport: () -> Unit, onHome: () -> Unit) {
     Title(stringResource(R.string.settings_title))
     Note(pack.courseTitle)
@@ -519,6 +518,14 @@ fun SettingsScreen(pack: ContentPack, direction: Direction, importStatus: String
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
     Action(stringResource(if (direction == Direction.Garden) R.string.compare_editorial
         else R.string.use_garden), click = onDirection)
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+        .clickable { onReducedMotion(!reducedMotion) },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        Text("Reduce character motion", style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.weight(1f))
+        Switch(checked = reducedMotion, onCheckedChange = null)
+    }
     Note(stringResource(R.string.pending_translation))
     Text(stringResource(R.string.ethiopic_sample), fontSize = 28.sp)
     Text(stringResource(R.string.arabic_sample), fontSize = 28.sp)
