@@ -94,6 +94,16 @@ fun AtharApp(db: LearningDatabase) {
     }
     var page by rememberSaveable { mutableStateOf("Today") }
     var direction by rememberSaveable { mutableStateOf(Direction.Garden) }
+    var reducedMotion by remember {
+        mutableStateOf(prefs.getBoolean("reduced-book-motion", false))
+    }
+    var bookEventId by remember { mutableIntStateOf(0) }
+    var playedBookEvent by remember { mutableIntStateOf(0) }
+    var bookEventMood by remember { mutableStateOf(BookMood.Idle) }
+    fun reactWithBook(mood: BookMood) {
+        bookEventMood = mood
+        bookEventId++
+    }
     var lessonId by rememberSaveable { mutableStateOf("") }
     var questionIndex by rememberSaveable { mutableIntStateOf(0) }
     var selected by rememberSaveable { mutableIntStateOf(-1) }
@@ -229,6 +239,7 @@ fun AtharApp(db: LearningDatabase) {
                         pending.id else UUID.randomUUID().toString().also {
                             conceptSessions.start(current, lesson, it)
                         }
+                    reactWithBook(if (pending != null) BookMood.Return else BookMood.Welcome)
                     page = "Concept"
                 } else {
                     sessionId = UUID.randomUUID().toString()
@@ -403,6 +414,21 @@ fun AtharApp(db: LearningDatabase) {
                                         }
                                     }
                                 } else {
+                                    val activity = saved.conceptActivities()[saved.cursor]
+                                    val currentQuestion = lesson.questions.firstOrNull {
+                                        activity.kind == "choice" && it.id == activity.reference
+                                    }
+                                    val restoredMood = when {
+                                        activity.kind == "concept" || activity.kind == "explanation" ->
+                                            BookMood.Explain
+                                        saved.feedback && activity.firstCorrect -> BookMood.Correct
+                                        saved.feedback -> BookMood.Encourage
+                                        saved.hinted || currentQuestion?.difficulty == "apply" ->
+                                            BookMood.Think
+                                        else -> BookMood.Idle
+                                    }
+                                    val mood = if (bookEventId > 0) bookEventMood else restoredMood
+                                    val shownEvent = bookEventId
                                     fun save(action: suspend () -> Unit) {
                                         if (busy) return
                                         busy = true
@@ -416,27 +442,45 @@ fun AtharApp(db: LearningDatabase) {
                                         }
                                     }
                                     ConceptLessonScreen(active, lesson, saved, busy, error,
+                                        mood, shownEvent,
+                                        shownEvent > playedBookEvent && bookEventMood == mood,
+                                        reducedMotion,
+                                        onBookEventStarted = { playedBookEvent = shownEvent },
                                         onExit = { page = "Learn" },
                                         onSelect = { index -> save {
                                             conceptSessions.select(sessionId, index)
                                         } },
-                                        onHint = { save { conceptSessions.useHint(sessionId) } },
+                                        onHint = { save {
+                                            conceptSessions.useHint(sessionId)
+                                            reactWithBook(BookMood.Think)
+                                        } },
                                         onReveal = { save {
                                             conceptSessions.reveal(sessionId, active, lesson)
+                                            reactWithBook(BookMood.Encourage)
                                         } },
                                         onSource = { save {
                                             conceptSessions.viewSource(sessionId)
+                                            reactWithBook(BookMood.Explain)
                                         } },
                                         onCheck = { save {
-                                            conceptSessions.check(sessionId, active, lesson)
+                                            val result = conceptSessions.check(sessionId, active, lesson)
+                                            reactWithBook(if (result.conceptActivities()[result.cursor].firstCorrect)
+                                                BookMood.Correct else BookMood.Encourage)
                                         } },
                                         onNext = { save {
-                                            conceptSessions.advance(sessionId, active, lesson)
+                                            val next = conceptSessions.advance(sessionId, active, lesson)
+                                            val nextActivity = next.conceptActivities()[next.cursor]
+                                            reactWithBook(when (nextActivity.kind) {
+                                                "concept", "explanation" -> BookMood.Explain
+                                                "choice" -> BookMood.Think
+                                                else -> BookMood.Idle
+                                            })
                                         } },
                                         onFinish = { save {
                                             study.completeLesson(lesson, sessionId, active.courseId)
                                             runCatching { journeysRepo.setStage(active.courseId, lesson,
                                                 LessonStage.Complete) }
+                                            reactWithBook(BookMood.Complete)
                                             page = "Done"
                                         } })
                                 }
@@ -578,7 +622,11 @@ fun AtharApp(db: LearningDatabase) {
                                     candidate.id != lesson.id && !lessonIsComplete(candidate, localCompletions) &&
                                         lessonIsAvailable(active, candidate, localCompletions)
                                 }
+                                val shownEvent = bookEventId
                                 DoneScreen(active, lesson, localCompletions, streak, studiedToday, next,
+                                    shownEvent, shownEvent > playedBookEvent &&
+                                        bookEventMood == BookMood.Complete, reducedMotion,
+                                    onBookEventStarted = { playedBookEvent = shownEvent },
                                     openNext = { next?.let(::openLesson) },
                                     openProgress = { page = "Progress" },
                                     openPath = { page = "Learn" })
@@ -715,6 +763,10 @@ fun AtharApp(db: LearningDatabase) {
                                 bookmarks.filter { it.courseId == active.courseId }, streak,
                                 studiedToday)
                             "Settings" -> SettingsScreen(active, direction, importStatus,
+                                reducedMotion, onReducedMotion = {
+                                    reducedMotion = it
+                                    prefs.edit().putBoolean("reduced-book-motion", it).commit()
+                                },
                                 onDirection = {
                                     direction = if (direction == Direction.Garden) Direction.Editorial
                                     else Direction.Garden

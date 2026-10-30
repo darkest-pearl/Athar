@@ -17,7 +17,9 @@ import androidx.compose.ui.unit.dp
 /** Executes the authored order. The saved session, rather than composition, owns answers. */
 @Composable
 fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingSession,
-    busy: Boolean, errorMessage: String?, onExit: () -> Unit, onSelect: (Int) -> Unit,
+    busy: Boolean, errorMessage: String?, bookMood: BookMood, bookEventId: Int,
+    bookPlayEvent: Boolean, reducedMotion: Boolean, onBookEventStarted: () -> Unit,
+    onExit: () -> Unit, onSelect: (Int) -> Unit,
     onHint: () -> Unit, onReveal: () -> Unit, onSource: () -> Unit,
     onCheck: () -> Unit, onNext: () -> Unit, onFinish: () -> Unit) {
     val activities = session.conceptActivities()
@@ -67,6 +69,10 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                BookCompanion(bookMood, bookEventId, bookPlayEvent, reducedMotion,
+                    onBookEventStarted, size = if (question == null) 116.dp else 88.dp)
+            }
             when (item.kind) {
                 "concept" -> {
                     Text(lesson.objective, style = MaterialTheme.typography.headlineMedium,
