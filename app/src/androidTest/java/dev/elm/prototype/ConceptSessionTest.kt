@@ -41,6 +41,7 @@ class ConceptSessionTest {
         val saved = reopened.learningDao().pendingSession(started.id)!!
         assertEquals(firstOrder, saved.conceptActivities()[1].choiceOrder)
         assertEquals(1, saved.conceptActivities()[1].firstSelected)
+        assertEquals(-1, saved.selected)
         assertTrue(saved.hinted)
         assertTrue(saved.feedback)
         assertTrue(saved.conceptActivities()[0].sourceViewed)

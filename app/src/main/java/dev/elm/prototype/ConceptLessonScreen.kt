@@ -52,7 +52,9 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                 TextButton(onClick = onExit, modifier = Modifier.heightIn(min = 48.dp)) {
                     Text("Exit to path")
                 }
-                Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.width(12.dp))
+                Text(lesson.title, style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f))
             }
             Text("Step ${session.cursor + 1} of ${activities.size}",
                 style = MaterialTheme.typography.labelLarge)
@@ -118,9 +120,13 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                                 })
                             Text("Answer: ${question.choices[question.correctIndex]}",
                                 style = MaterialTheme.typography.titleMedium)
+                            if (!firstCorrect) Text(if (item.firstSelected >= 0)
+                                "Your first answer: ${question.choices[item.firstSelected]}"
+                                else "You revealed the answer",
+                                style = MaterialTheme.typography.bodyMedium)
                             Note(question.explanation)
                             if (!firstCorrect) Text(if (item.corrected)
-                                "Your first answer remains saved separately."
+                                "You corrected this answer. Try it again later without a hint."
                                 else "Choose the explained answer to continue.",
                                 style = MaterialTheme.typography.bodyMedium)
                         }

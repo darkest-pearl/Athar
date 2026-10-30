@@ -38,7 +38,7 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
         if (!hinted) TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.show_hint))
         }
-        if (hinted) Panel { Note(lesson.notes) }
+        if (hinted) Panel { Note(question.hint.ifBlank { lesson.notes }) }
         if (!revealed) TextButton(onClick = onReveal, modifier = Modifier.heightIn(min = 48.dp)) {
             Text(stringResource(R.string.reveal_answer))
         }

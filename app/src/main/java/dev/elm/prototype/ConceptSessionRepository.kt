@@ -124,6 +124,7 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
                     clock.millis(), "lesson", old.courseId)
                 dao.insertAnswerEvent(event)
                 old.copy(feedback = true,
+                    selected = if (event.correct) old.selected else -1,
                     itemsJson = encodeConceptActivities(items.replaceAt(old.cursor) {
                         it.copy(firstSelected = chosen,
                             firstCorrect = chosen == question.correctIndex,
