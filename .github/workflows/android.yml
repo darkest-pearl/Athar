@@ -53,6 +53,7 @@ jobs:
           disable-animations: true
           script: |
             bash gradlew connectedDebugAndroidTest --console=plain
+            bash gradlew installDebug --console=plain
             python scripts/verify_text_first.py
       - uses: actions/upload-artifact@v4
         if: always()
