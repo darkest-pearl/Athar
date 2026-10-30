@@ -81,6 +81,12 @@ assert has('Apply the idea')
 tap('Read the key for that map')
 tap('Check answer')
 capture('concept-application-feedback')
+tap('Continue')
+capture('concept-mistake-replay')
+assert has('Previous mistake')
+tap('The meaning of a symbol')
+tap('Check answer')
+capture('concept-replay-feedback')
 tap('Finish lesson')
 capture('concept-complete')
 assert has('1 of 2 lessons complete')
@@ -89,6 +95,10 @@ stop_recording(recording, 'concept-walkthrough')
 tap('See progress')
 capture('concept-progress')
 assert has('1 of 2 lessons complete')
+assert seek_text('Concept learning')
+capture('concept-progress-concepts')
+assert has('1 concept practised in lessons')
+assert has('1 concept with a corrected answer')
 adb('shell', 'am', 'force-stop', PKG)
 launch()
 tap('Progress')
@@ -111,6 +121,6 @@ assert motion_reduced()
 (OUT / 'concept-checks.json').write_text(json.dumps(dict(
     offline=True, no_audio=True, authored_order=True, hint=True,
     first_response_and_correction=True, feedback_restored=True,
-    source_resolved=True, application=True, completion=True,
+    source_resolved=True, application=True, mistake_replay=True, completion=True,
     progress_reopened=True, animated_walkthrough=True,
     reduced_motion_persisted=True), indent=2), encoding='utf8')

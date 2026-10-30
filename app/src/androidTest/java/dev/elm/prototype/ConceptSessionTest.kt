@@ -65,6 +65,18 @@ class ConceptSessionTest {
         later.select(started.id, secondOrder.indexOf(lesson.questions[1].correctIndex))
         later.check(started.id, pack, lesson)
         val study = StudyRepository(reopened, reopened.learningDao(), clock, ZoneOffset.UTC)
+        val replay = reopened.learningDao().pendingSession(started.id)!!
+            .conceptActivities().last()
+        assertEquals("replay", replay.kind)
+        assertEquals(lesson.questions[0].id, replay.reference)
+        try {
+            study.completeLesson(lesson, started.id, pack.courseId)
+            fail("Mistake replay must finish before lesson completion")
+        } catch (_: IllegalArgumentException) { }
+        later.advance(started.id, pack, lesson)
+        later.select(started.id, replay.choiceOrder.indexOf(lesson.questions[0].correctIndex))
+        later.check(started.id, pack, lesson)
+        assertEquals(1, reopened.learningDao().answerEvents().count { it.kind == "replay" })
         assertTrue(study.completeLesson(lesson, started.id, pack.courseId))
         assertFalse(study.completeLesson(lesson, started.id, pack.courseId))
         assertEquals(1, reopened.learningDao().lessonCompletions().size)

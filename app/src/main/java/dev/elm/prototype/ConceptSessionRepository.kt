@@ -51,14 +51,24 @@ fun conceptSessionMatches(session: PendingSession, pack: ContentPack, lesson: Pa
         session.lessonVersion != lesson.version || session.finalized) return false
     return runCatching {
         val saved = session.conceptActivities()
-        saved.size == lesson.activities.size && session.cursor in saved.indices &&
-            saved.zip(lesson.activities).all { (item, authored) ->
+        val authored = saved.take(lesson.activities.size)
+        val replays = saved.drop(lesson.activities.size)
+        saved.size >= lesson.activities.size && session.cursor in saved.indices &&
+            authored.zip(lesson.activities).all { (item, authored) ->
                 item.id == authored.id && item.kind == authored.kind &&
                     item.reference == authored.reference &&
                     (if (item.kind == "choice") {
                         val size = lesson.questions.first { it.id == item.reference }.choices.size
                         item.choiceOrder.sorted() == (0 until size).toList()
                     } else item.choiceOrder.isEmpty())
+            } && replays.map { it.id }.distinct().size == replays.size &&
+            replays.all { replay ->
+                val source = authored.firstOrNull { it.id + "-replay" == replay.id &&
+                    it.kind == "choice" && it.firstSelected >= -1 && !it.firstCorrect }
+                val size = lesson.questions.first { it.id == replay.reference }.choices.size
+                source != null && replay.kind == "replay" &&
+                    replay.reference == source.reference &&
+                    replay.choiceOrder.sorted() == (0 until size).toList()
             }
     }.getOrDefault(false)
 }
@@ -86,14 +96,15 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
 
     suspend fun select(id: String, presentedIndex: Int): PendingSession = change(id) { old, items ->
         val current = items[old.cursor]
-        require(current.kind == "choice" && presentedIndex in current.choiceOrder.indices)
+        require(current.kind in setOf("choice", "replay") &&
+            presentedIndex in current.choiceOrder.indices)
         require(!old.feedback || (current.firstSelected >= -1 &&
             !current.firstCorrect && !current.corrected))
         old.copy(selected = presentedIndex)
     }
 
     suspend fun useHint(id: String): PendingSession = change(id) { old, items ->
-        require(items[old.cursor].kind == "choice" && !old.feedback)
+        require(items[old.cursor].kind in setOf("choice", "replay") && !old.feedback)
         old.copy(hinted = true,
             itemsJson = encodeConceptActivities(items.replaceAt(old.cursor) {
                 it.copy(usedHint = true)
@@ -112,7 +123,7 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
             val old = active(id, pack, lesson)
             val items = old.conceptActivities()
             val item = items[old.cursor]
-            require(item.kind == "choice")
+            require(item.kind in setOf("choice", "replay"))
             val question = lesson.questions.first { it.id == item.reference }
             val chosen = item.choiceOrder.getOrNull(old.selected)
                 ?: throw IllegalArgumentException("Select an answer")
@@ -121,15 +132,17 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
             val next = if (existing == null) {
                 val event = AnswerEvent(eventId, lesson.id, question.id, question.version,
                     id, chosen, chosen == question.correctIndex, old.hinted, old.revealed,
-                    clock.millis(), "lesson", old.courseId)
+                    clock.millis(), if (item.kind == "replay") "replay" else "lesson", old.courseId)
                 dao.insertAnswerEvent(event)
+                val revised = items.replaceAt(old.cursor) {
+                    it.copy(firstSelected = chosen,
+                        firstCorrect = chosen == question.correctIndex,
+                        usedHint = old.hinted)
+                }
                 old.copy(feedback = true,
                     selected = if (event.correct) old.selected else -1,
-                    itemsJson = encodeConceptActivities(items.replaceAt(old.cursor) {
-                        it.copy(firstSelected = chosen,
-                            firstCorrect = chosen == question.correctIndex,
-                            usedHint = old.hinted)
-                    }))
+                    itemsJson = encodeConceptActivities(if (!event.correct && item.kind == "choice")
+                        revised + replayFor(item, id, question) else revised))
             } else {
                 require(item.firstSelected >= -1)
                 require(!item.corrected && !existing.correct) { "Already answered" }
@@ -151,16 +164,19 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
             require(!old.feedback)
             val items = old.conceptActivities()
             val item = items[old.cursor]
-            require(item.kind == "choice")
+            require(item.kind in setOf("choice", "replay"))
             val question = lesson.questions.first { it.id == item.reference }
             dao.insertAnswerEvent(AnswerEvent(
                 "concept:${old.courseId}:$id:${item.id}:first", lesson.id, question.id,
                 question.version, id, -1, false, old.hinted, true, clock.millis(),
-                "lesson", old.courseId))
+                if (item.kind == "replay") "replay" else "lesson", old.courseId))
+            val revised = items.replaceAt(old.cursor) {
+                it.copy(firstSelected = -1, usedHint = old.hinted)
+            }
             old.copy(feedback = true, revealed = true, selected = -1,
-                itemsJson = encodeConceptActivities(items.replaceAt(old.cursor) {
-                    it.copy(firstSelected = -1, usedHint = old.hinted)
-                }), updatedAt = clock.millis()).also { dao.updatePendingSession(it) }
+                itemsJson = encodeConceptActivities(if (item.kind == "choice")
+                    revised + replayFor(item, id, question) else revised),
+                updatedAt = clock.millis()).also { dao.updatePendingSession(it) }
         }
 
     suspend fun advance(id: String, pack: ContentPack, lesson: PackLesson): PendingSession =
@@ -169,7 +185,7 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
             val items = old.conceptActivities()
             require(old.cursor + 1 < items.size)
             val current = items[old.cursor]
-            if (current.kind == "choice") {
+            if (current.kind in setOf("choice", "replay")) {
                 require(old.feedback)
                 require(current.firstCorrect || current.corrected) {
                     "Correct the answer before continuing"
@@ -193,6 +209,11 @@ class ConceptSessionRepository(private val db: LearningDatabase, private val dao
             transform(old, old.conceptActivities()).copy(updatedAt = clock.millis())
                 .also { dao.updatePendingSession(it) }
         }
+
+    private fun replayFor(item: ConceptActivityState, sessionId: String,
+        question: PackQuestion): ConceptActivityState = ConceptActivityState(
+        item.id + "-replay", "replay", item.reference,
+        question.choices.indices.shuffled(Random((sessionId + item.id + "replay").hashCode())))
 }
 
 private fun <T> List<T>.replaceAt(index: Int, transform: (T) -> T): List<T> =

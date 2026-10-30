@@ -25,7 +25,9 @@ jobs:
       - name: Build, lint and rules
         run: bash gradlew assembleDebug lintDebug testDebugUnitTest --console=plain
       - name: Content gate tests
-        run: python scripts/test_content.py
+        run: |
+          python scripts/test_content.py
+          python scripts/test_editorial.py
       - uses: actions/upload-artifact@v4
         with:
           name: athar-debug-apk

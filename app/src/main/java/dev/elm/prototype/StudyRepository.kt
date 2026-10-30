@@ -40,6 +40,15 @@ class StudyRepository(private val db: LearningDatabase, private val dao: Learnin
         require(lesson.questions.all { question -> events.any {
             it.questionId == question.id && it.questionVersion == question.version
         } }) { "Lesson feedback is incomplete" }
+        dao.pendingSession(sessionId)?.takeIf { it.kind == "concept" }?.let { pending ->
+            val activities = pending.conceptActivities()
+            require(pending.cursor == activities.lastIndex &&
+                activities.all { it.kind !in setOf("choice", "replay") ||
+                    it.firstCorrect || it.corrected } &&
+                (activities.last().kind !in setOf("choice", "replay") || pending.feedback)) {
+                "Concept practice or mistake replay is incomplete"
+            }
+        }
         val now = clock.instant()
         val day = studyDay(now, zone)
         dao.insertLessonCompletion(LessonCompletion("$courseId:${lesson.id}:v${lesson.version}", lesson.id,
