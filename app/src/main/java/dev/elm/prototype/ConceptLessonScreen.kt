@@ -9,6 +9,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -51,7 +52,8 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onExit, modifier = Modifier.heightIn(min = 48.dp)) {
+                TextButton(onClick = onExit, modifier = Modifier.heightIn(min = 48.dp)
+                    .semantics { contentDescription = "Exit to path" }) {
                     Text("Exit")
                 }
                 Spacer(Modifier.width(12.dp))
