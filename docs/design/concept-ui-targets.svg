@@ -1,0 +1,727 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1346" height="2160" viewBox="0 0 1346 2160" role="img" aria-labelledby="title desc">
+<title id="title">Athar concept-learning visual targets: six native Android screens</title>
+<desc id="desc">New design reference, not screenshots of the existing app. Six 390 by 844 logical-pixel screens show Learn, a concept card, selected practice, visible incorrect feedback, correct application feedback and completion. Original forest-green book companions have eyes, mouths and detached hands and feet. Sample content is a neutral map-skills demo. Runtime motion and accessibility requirements are specified in the corrective brief.</desc>
+<g font-family="DejaVu Sans, sans-serif">
+<rect x="0" y="0" width="1346" height="2160" rx="0" fill="#F1F4EE"/>
+<text x="44" y="58" font-size="17" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="44" dy="0">ATHAR / CONCEPT LEARNING</tspan>
+</text>
+<text x="44" y="103" font-size="35" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="44" dy="0">A learning journey you can see and feel.</tspan>
+</text>
+<text x="44" y="137" font-size="16" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="44" dy="0">Implementation target · neutral English demo · 1 November 2026</tspan>
+</text>
+<rect x="1047" y="39" width="255" height="26" rx="13" fill="#DDEBD4"/>
+<text x="1174.5" y="56" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="1174.5" dy="0">DESIGN, NOT APP CAPTURES</tspan>
+</text>
+<rect x="44" y="187" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="44" y="179" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone0"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(44 179)" clip-path="url(#phone0)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<text x="23" y="72" font-size="25" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="23" dy="0">Athar</tspan>
+</text>
+<rect x="211" y="46" width="119" height="35" rx="12" fill="#EFF3E8"/>
+<text x="270" y="68" font-size="12" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="270" dy="0">Map skills</tspan>
+</text>
+<circle cx="352" cy="64" r="17" fill="#EFF3E8"/>
+<circle cx="352" cy="64" r="6" fill="none" stroke="#2E7C58" stroke-width="2"/>
+<path d="M 352 54 V 51 M 352 77 V 74 M 342 64 H 339 M 365 64 H 362 M 345 57 L 343 55 M 359 71 L 361 73 M 345 71 L 343 73 M 359 57 L 361 55" fill="none" stroke="#2E7C58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+<text x="23" y="111" font-size="10" fill="#5B6E65" font-weight="700" text-anchor="start">
+<tspan x="23" dy="0">YOUR LEARNING PATH</tspan>
+</text>
+<text x="23" y="144" font-size="25" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="23" dy="0">One idea at a time.</tspan>
+</text>
+<rect x="23" y="158" width="156" height="26" rx="13" fill="#E8F2DF"/>
+<text x="101.0" y="175" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="101.0" dy="0">Concept demo · English</tspan>
+</text>
+<rect x="20" y="204" width="350" height="91" rx="22" fill="#2E7C58"/>
+<text x="39" y="230" font-size="10" fill="#D1EDC5" font-weight="700" text-anchor="start">
+<tspan x="39" dy="0">UNIT 1</tspan>
+</text>
+<text x="39" y="260" font-size="22" fill="#FFFFFF" font-weight="700" text-anchor="start">
+<tspan x="39" dy="0">Read your world</tspan>
+</text>
+<g transform="translate(285 200) scale(0.51)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="69" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="70.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="96" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="97.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 60 50 Q 67 47 75 50 M 89 50 Q 96 47 103 50" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 74 92 Q 83 96 93 92 Q 92 108 83 108 Q 75 106 74 92Z" fill="#183C33"/>
+<path d="M 79 104 Q 84 99 90 104 Q 85 110 79 104Z" fill="#E9A385"/>
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(19 62) rotate(-22)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(143 103) rotate(5)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<path d="M 190 380 C 190 432 104 430 104 479 C 104 539 246 546 246 621" fill="none" stroke="#DEE9D7" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 190 380 C 190 405 170 423 147 435" fill="none" stroke="#9FC590" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="127" y="310" width="126" height="29" rx="11" fill="#FFE7A5"/>
+<text x="190" y="329" font-size="11" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="190" dy="0">START HERE</tspan>
+</text>
+<circle cx="190" cy="387" r="35" fill="#19573B"/>
+<circle cx="190" cy="380" r="35" fill="#2E7C58"/>
+<path d="M 174 374 Q 181 370 190 375 Q 199 370 206 374 V 392 Q 198 388 190 393 Q 181 388 174 392 Z M 190 375 V 393" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<text x="242" y="386" font-size="14" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="242" dy="0">Read a</tspan>
+</text>
+<text x="242" y="408" font-size="14" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="242" dy="0">map key</tspan>
+</text>
+<circle cx="104" cy="487" r="32" fill="#C9D7C6"/>
+<circle cx="104" cy="481" r="32" fill="#EDF2E7" stroke="#D7E1D0" stroke-width="2"/>
+<rect x="94" y="478" width="20" height="17" rx="5" fill="#90A38B"/>
+<path d="M 98 478 V 473 Q 104 465 110 473 V 478" fill="none" stroke="#90A38B" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+<text x="154" y="480" font-size="17" fill="#5B6E65" font-weight="700" text-anchor="start">
+<tspan x="154" dy="0">Plan a route</tspan>
+</text>
+<text x="154" y="503" font-size="11" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="154" dy="0">After your first lesson</tspan>
+</text>
+<circle cx="246" cy="629" r="30" fill="#DFE7D8"/>
+<circle cx="246" cy="623" r="30" fill="#F2F5EC" stroke="#D7E1D0" stroke-width="2"/>
+<path d="M 234 623 Q 246 605 259 621 M 258 613 L 260 622 L 251 622" fill="none" stroke="#9AAD94" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<text x="200" y="617" font-size="15" fill="#5B6E65" font-weight="600" text-anchor="end">
+<tspan x="200" dy="0">Review later</tspan>
+</text>
+<text x="200" y="639" font-size="11" fill="#5B6E65" font-weight="400" text-anchor="end">
+<tspan x="200" dy="0">After learning</tspan>
+</text>
+<text x="195" y="692" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="middle">
+<tspan x="195" dy="0">Small lessons. Steady progress.</tspan>
+</text>
+<rect x="20" y="717" width="350" height="54" rx="16" fill="#19573B"/>
+<rect x="20" y="712" width="350" height="54" rx="16" fill="#2E7C58"/>
+<text x="195.0" y="744.0" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">START LESSON</tspan>
+</text>
+<rect x="0" y="778" width="390" height="66" rx="0" fill="#FFFFFF"/>
+<path d="M 0 778 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="15" y="786" width="111" height="46" rx="16" fill="#E7F3DB"/>
+<path d="M 35 809 V 798 Q 43 796 50 801 Q 57 796 65 798 V 809 Q 57 807 50 812 Q 42 807 35 809 M 50 801 V 812" fill="none" stroke="#2E7C58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+<text x="77" y="810" font-size="13" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="77" dy="0">Learn</tspan>
+</text>
+<path d="M 168 800 Q 185 790 190 805 M 187 796 L 191 806 L 181 804" fill="none" stroke="#5B6E65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+<text x="200" y="810" font-size="12" fill="#5B6E65" font-weight="600" text-anchor="start">
+<tspan x="200" dy="0">Review</tspan>
+</text>
+<path d="M 296 812 V 805 M 303 812 V 798 M 310 812 V 791" fill="none" stroke="#5B6E65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+<text x="344" y="810" font-size="11" fill="#5B6E65" font-weight="600" text-anchor="middle">
+<tspan x="344" dy="0">Progress</tspan>
+</text>
+</g>
+<text x="44" y="1059" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="44" dy="0">01  Learn</tspan>
+</text>
+<text x="44" y="1087" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="44" dy="0">A clear path and a useful next step.</tspan>
+</text>
+<rect x="478" y="187" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="478" y="179" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone1"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(478 179)" clip-path="url(#phone1)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<circle cx="34" cy="64" r="20" fill="#F0F3E9"/>
+<path d="M 28 58 L 40 70 M 40 58 L 28 70" fill="none" stroke="#5B6E65" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#E3EBDC"/>
+<rect x="70" y="57" width="48.239999999999995" height="13" rx="6.5" fill="#2E7C58"/>
+<rect x="75" y="59" width="38.239999999999995" height="3" rx="1.5" fill="#78AF7D"/>
+<circle cx="363" cy="64" r="10" fill="none" stroke="#A7B8AA" stroke-width="1.5"/>
+<text x="363" y="68" font-size="12" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="363" dy="0">i</tspan>
+</text>
+<rect x="20" y="97" width="110" height="26" rx="13" fill="#E8F2DF"/>
+<text x="75.0" y="114" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="75.0" dy="0">ONE NEW IDEA</tspan>
+</text>
+<text x="370" y="115" font-size="11" fill="#5B6E65" font-weight="400" text-anchor="end">
+<tspan x="370" dy="0">Map skills · demo</tspan>
+</text>
+<text x="24" y="164" font-size="28" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">Every symbol has</tspan>
+<tspan x="24" dy="36">a meaning.</tspan>
+</text>
+<g transform="translate(120 226) scale(1.04)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="72" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="73.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="99" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="100.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 60 50 Q 67 47 75 50 M 89 50 Q 96 47 103 50" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<ellipse cx="84" cy="98" rx="6" ry="8" fill="#183C33"/>
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(23 102) rotate(8)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(142 65) rotate(-28)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<rect x="20" y="418" width="350" height="147" rx="22" fill="#EAF3E2"/>
+<path d="M 40 445 Q 46 438 52 445 T 65 445 T 78 445" fill="none" stroke="#3E89AA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+<text x="91" y="450" font-size="10" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="91" dy="0">A BLUE LINE</tspan>
+</text>
+<text x="40" y="489" font-size="17" fill="#183C33" font-weight="500" text-anchor="start">
+<tspan x="40" dy="0">In this map, a blue line</tspan>
+<tspan x="40" dy="25">represents a river.</tspan>
+<tspan x="40" dy="25">The map key tells you that.</tspan>
+</text>
+<text x="25" y="605" font-size="14" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="25" dy="0">Keys can differ between maps.</tspan>
+</text>
+<text x="25" y="652" font-size="14" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="25" dy="0">Read the source</tspan>
+</text>
+<path d="M 147 648 L 153 652 L 147 656" fill="none" stroke="#2E7C58" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="0" y="704" width="390" height="140" rx="0" fill="#FFFCF5"/>
+<path d="M 0 704 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="147" y="829" width="96" height="4" rx="2" fill="#C0CBBE"/>
+<text x="195" y="726" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="middle">
+<tspan x="195" dy="0">Read, then try one easy question.</tspan>
+</text>
+<rect x="20" y="749" width="350" height="54" rx="16" fill="#19573B"/>
+<rect x="20" y="744" width="350" height="54" rx="16" fill="#2E7C58"/>
+<text x="195.0" y="776.0" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">CONTINUE</tspan>
+</text>
+</g>
+<text x="478" y="1059" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="478" dy="0">02  One idea</tspan>
+</text>
+<text x="478" y="1087" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="478" dy="0">Teach briefly; keep source access available.</tspan>
+</text>
+<rect x="912" y="187" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="912" y="179" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone2"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(912 179)" clip-path="url(#phone2)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<circle cx="34" cy="64" r="20" fill="#F0F3E9"/>
+<path d="M 28 58 L 40 70 M 40 58 L 28 70" fill="none" stroke="#5B6E65" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#E3EBDC"/>
+<rect x="70" y="57" width="101.84" height="13" rx="6.5" fill="#2E7C58"/>
+<rect x="75" y="59" width="91.84" height="3" rx="1.5" fill="#78AF7D"/>
+<circle cx="363" cy="64" r="10" fill="none" stroke="#A7B8AA" stroke-width="1.5"/>
+<text x="363" y="68" font-size="12" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="363" dy="0">i</tspan>
+</text>
+<rect x="20" y="98" width="110" height="26" rx="13" fill="#E8F2DF"/>
+<text x="75.0" y="115" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="75.0" dy="0">LET’S TRY IT</tspan>
+</text>
+<text x="24" y="165" font-size="25" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">What does a</tspan>
+<tspan x="24" dy="35">map key explain?</tspan>
+</text>
+<g transform="translate(282 141) scale(0.5)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="67" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="68.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="94" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="95.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 60 49 Q 68 44 76 49 M 88 52 L 103 49" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 79 99 Q 84 96 89 97" fill="none" stroke="#183C33" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(48 76) rotate(24)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(142 108) rotate(-8)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<text x="24" y="254" font-size="14" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="24" dy="0">Choose one answer.</tspan>
+</text>
+<rect x="20" y="299" width="350" height="72" rx="18" fill="#B9CFDF"/>
+<rect x="20" y="294" width="350" height="72" rx="18" fill="#EAF3FF" stroke="#4278AA" stroke-width="2"/>
+<circle cx="49" cy="330" r="14" fill="#4278AA"/>
+<text x="49" y="335" font-size="13" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">A</tspan>
+</text>
+<text x="75" y="336" font-size="16" fill="#183C33" font-weight="600" text-anchor="start">
+<tspan x="75" dy="0">The meaning of a symbol.</tspan>
+</text>
+<rect x="20" y="390" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="385" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="421" r="14" fill="#EEF2EA"/>
+<text x="49" y="426" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">B</tspan>
+</text>
+<text x="75" y="427" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">The battery level.</tspan>
+</text>
+<rect x="20" y="481" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="476" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="512" r="14" fill="#EEF2EA"/>
+<text x="49" y="517" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">C</tspan>
+</text>
+<text x="75" y="518" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">The age of the paper.</tspan>
+</text>
+<text x="195" y="611" font-size="14" fill="#2E7C58" font-weight="600" text-anchor="middle">
+<tspan x="195" dy="0">Need a hint?</tspan>
+</text>
+<rect x="0" y="714" width="390" height="130" rx="0" fill="#FFFCF5"/>
+<path d="M 0 714 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="147" y="829" width="96" height="4" rx="2" fill="#C0CBBE"/>
+<rect x="20" y="749" width="350" height="54" rx="16" fill="#19573B"/>
+<rect x="20" y="744" width="350" height="54" rx="16" fill="#2E7C58"/>
+<text x="195.0" y="776.0" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">CHECK ANSWER</tspan>
+</text>
+</g>
+<text x="912" y="1059" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="912" dy="0">03  Choose an answer</tspan>
+</text>
+<text x="912" y="1087" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="912" dy="0">Selection has depth; correctness comes later.</tspan>
+</text>
+<rect x="44" y="1156" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="44" y="1148" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone3"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(44 1148)" clip-path="url(#phone3)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<circle cx="34" cy="64" r="20" fill="#F0F3E9"/>
+<path d="M 28 58 L 40 70 M 40 58 L 28 70" fill="none" stroke="#5B6E65" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#E3EBDC"/>
+<rect x="70" y="57" width="101.84" height="13" rx="6.5" fill="#2E7C58"/>
+<rect x="75" y="59" width="91.84" height="3" rx="1.5" fill="#78AF7D"/>
+<circle cx="363" cy="64" r="10" fill="none" stroke="#A7B8AA" stroke-width="1.5"/>
+<text x="363" y="68" font-size="12" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="363" dy="0">i</tspan>
+</text>
+<rect x="20" y="98" width="110" height="26" rx="13" fill="#E8F2DF"/>
+<text x="75.0" y="115" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="75.0" dy="0">LET’S TRY IT</tspan>
+</text>
+<text x="24" y="165" font-size="25" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">What does a</tspan>
+<tspan x="24" dy="35">map key explain?</tspan>
+</text>
+<g transform="translate(282 141) scale(0.5)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="69" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="70.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="96" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="97.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 59 51 Q 67 46 76 51 M 88 50 Q 95 47 103 52" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 75 97 Q 84 108 93 97" fill="none" stroke="#183C33" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(22 105) rotate(-10)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(143 92) rotate(14)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<text x="24" y="254" font-size="14" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="24" dy="0">Choose one answer.</tspan>
+</text>
+<rect x="20" y="299" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="294" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="330" r="14" fill="#EEF2EA"/>
+<text x="49" y="335" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">A</tspan>
+</text>
+<text x="75" y="336" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">The meaning of a symbol.</tspan>
+</text>
+<rect x="20" y="390" width="350" height="72" rx="18" fill="#E9BFB0"/>
+<rect x="20" y="385" width="350" height="72" rx="18" fill="#FFF0E9" stroke="#BD5A42" stroke-width="2"/>
+<circle cx="49" cy="421" r="14" fill="#BD5A42"/>
+<text x="49" y="426" font-size="13" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">×</tspan>
+</text>
+<text x="75" y="427" font-size="16" fill="#183C33" font-weight="600" text-anchor="start">
+<tspan x="75" dy="0">The battery level.</tspan>
+</text>
+<rect x="20" y="481" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="476" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="512" r="14" fill="#EEF2EA"/>
+<text x="49" y="517" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">C</tspan>
+</text>
+<text x="75" y="518" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">The age of the paper.</tspan>
+</text>
+<rect x="0" y="580" width="390" height="264" rx="0" fill="#FFF0E9"/>
+<path d="M 0 580 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="147" y="829" width="96" height="4" rx="2" fill="#C0CBBE"/>
+<circle cx="34" cy="612" r="12" fill="#BD5A42"/>
+<text x="34" y="617" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="34" dy="0">i</tspan>
+</text>
+<text x="57" y="619" font-size="20" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="57" dy="0">Let’s try that again.</tspan>
+</text>
+<text x="24" y="652" font-size="14" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="24" dy="0">The key explains the symbols.</tspan>
+<tspan x="24" dy="23">A battery level belongs to a device.</tspan>
+</text>
+<text x="24" y="709" font-size="12" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">Why? · Read source</tspan>
+</text>
+<rect x="20" y="749" width="350" height="54" rx="16" fill="#D6DED5"/>
+<rect x="20" y="744" width="350" height="54" rx="16" fill="#E6EBE3"/>
+<text x="195.0" y="776.0" font-size="14" fill="#7C8B81" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">CHECK CORRECTION</tspan>
+</text>
+</g>
+<text x="44" y="2028" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="44" dy="0">04  Explain the mistake</tspan>
+</text>
+<text x="44" y="2056" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="44" dy="0">The outcome, why and next action stay visible.</tspan>
+</text>
+<rect x="478" y="1156" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="478" y="1148" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone4"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(478 1148)" clip-path="url(#phone4)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<circle cx="34" cy="64" r="20" fill="#F0F3E9"/>
+<path d="M 28 58 L 40 70 M 40 58 L 28 70" fill="none" stroke="#5B6E65" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#E3EBDC"/>
+<rect x="70" y="57" width="201.0" height="13" rx="6.5" fill="#2E7C58"/>
+<rect x="75" y="59" width="191.0" height="3" rx="1.5" fill="#78AF7D"/>
+<circle cx="363" cy="64" r="10" fill="none" stroke="#A7B8AA" stroke-width="1.5"/>
+<text x="363" y="68" font-size="12" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="363" dy="0">i</tspan>
+</text>
+<rect x="20" y="98" width="170" height="26" rx="13" fill="#E8F2DF"/>
+<text x="105.0" y="115" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="105.0" dy="0">TRY A NEW SITUATION</tspan>
+</text>
+<text x="24" y="162" font-size="25" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">A dotted line.</tspan>
+<tspan x="24" dy="32">How do you learn</tspan>
+<tspan x="24" dy="32">its meaning?</tspan>
+</text>
+<g transform="translate(285 143) scale(0.48)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="69" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="70.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="96" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="97.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 60 50 Q 67 47 75 50 M 89 50 Q 96 47 103 50" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 74 92 Q 83 96 93 92 Q 92 108 83 108 Q 75 106 74 92Z" fill="#183C33"/>
+<path d="M 79 104 Q 84 99 90 104 Q 85 110 79 104Z" fill="#E9A385"/>
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(19 86) rotate(-25)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(144 80) rotate(24)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(285 154) scale(0.55)"/>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(363 180) scale(0.35)"/>
+<rect x="20" y="299" width="350" height="72" rx="18" fill="#B0D1B7"/>
+<rect x="20" y="294" width="350" height="72" rx="18" fill="#E4F3E7" stroke="#2E7C58" stroke-width="2"/>
+<circle cx="49" cy="330" r="14" fill="#2E7C58"/>
+<text x="49" y="335" font-size="13" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">✓</tspan>
+</text>
+<text x="75" y="336" font-size="16" fill="#183C33" font-weight="600" text-anchor="start">
+<tspan x="75" dy="0">Read the key for that map.</tspan>
+</text>
+<rect x="20" y="390" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="385" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="421" r="14" fill="#EEF2EA"/>
+<text x="49" y="426" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">B</tspan>
+</text>
+<text x="75" y="427" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">Assume every line is a river.</tspan>
+</text>
+<rect x="20" y="481" width="350" height="72" rx="18" fill="#DDE4DA"/>
+<rect x="20" y="476" width="350" height="72" rx="18" fill="#FFFFFF" stroke="#C6D1C9" stroke-width="2"/>
+<circle cx="49" cy="512" r="14" fill="#EEF2EA"/>
+<text x="49" y="517" font-size="13" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="49" dy="0">C</tspan>
+</text>
+<text x="75" y="518" font-size="16" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="75" dy="0">Measure the paper.</tspan>
+</text>
+<rect x="0" y="580" width="390" height="264" rx="0" fill="#E7F3E6"/>
+<path d="M 0 580 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="147" y="829" width="96" height="4" rx="2" fill="#C0CBBE"/>
+<circle cx="34" cy="612" r="12" fill="#2E7C58"/>
+<text x="34" y="617" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="34" dy="0">✓</tspan>
+</text>
+<text x="57" y="619" font-size="20" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="57" dy="0">Exactly!</tspan>
+</text>
+<text x="24" y="652" font-size="14" fill="#183C33" font-weight="400" text-anchor="start">
+<tspan x="24" dy="0">Each map’s key explains its symbols.</tspan>
+<tspan x="24" dy="23">You used the idea in a new situation.</tspan>
+</text>
+<text x="24" y="709" font-size="12" fill="#2E7C58" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">Why? · Read source</tspan>
+</text>
+<rect x="20" y="749" width="350" height="54" rx="16" fill="#19573B"/>
+<rect x="20" y="744" width="350" height="54" rx="16" fill="#2E7C58"/>
+<text x="195.0" y="776.0" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">CONTINUE</tspan>
+</text>
+</g>
+<text x="478" y="2028" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="478" dy="0">05  Apply and understand</tspan>
+</text>
+<text x="478" y="2056" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="478" dy="0">Feedback celebrates the idea, not guessed mastery.</tspan>
+</text>
+<rect x="912" y="1156" width="390" height="844" rx="30" fill="#DCE3D6"/>
+<rect x="912" y="1148" width="390" height="844" rx="30" fill="#FFFCF5" stroke="#C1CEC0" stroke-width="1.5"/>
+<defs><clipPath id="phone5"><rect x="0" y="0" width="390" height="844" rx="30"/></clipPath></defs>
+<g transform="translate(912 1148)" clip-path="url(#phone5)">
+<text x="24" y="26" font-size="12" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="24" dy="0">9:41</tspan>
+</text>
+<rect x="315" y="21" width="3" height="4" rx="1" fill="#183C33"/>
+<rect x="320" y="18" width="3" height="7" rx="1" fill="#183C33"/>
+<rect x="325" y="15" width="3" height="10" rx="1" fill="#183C33"/>
+<rect x="330" y="12" width="3" height="13" rx="1" fill="#183C33"/>
+<rect x="343" y="14" width="22" height="11" rx="3" fill="none" stroke="#183C33" stroke-width="1.5"/>
+<rect x="346" y="17" width="15" height="5" rx="1" fill="#183C33"/>
+<rect x="366" y="17" width="2" height="5" rx="1" fill="#183C33"/>
+<circle cx="34" cy="64" r="20" fill="#F0F3E9"/>
+<path d="M 28 58 L 40 70 M 40 58 L 28 70" fill="none" stroke="#5B6E65" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#E3EBDC"/>
+<rect x="70" y="57" width="268" height="13" rx="6.5" fill="#2E7C58"/>
+<rect x="75" y="59" width="258" height="3" rx="1.5" fill="#78AF7D"/>
+<circle cx="363" cy="64" r="10" fill="none" stroke="#A7B8AA" stroke-width="1.5"/>
+<text x="363" y="68" font-size="12" fill="#5B6E65" font-weight="700" text-anchor="middle">
+<tspan x="363" dy="0">i</tspan>
+</text>
+<rect x="112" y="104" width="166" height="26" rx="13" fill="#E8F2DF"/>
+<text x="195.0" y="121" font-size="10" fill="#19573B" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">LESSON COMPLETE</tspan>
+</text>
+<g transform="translate(87 190) scale(1.35)">
+<ellipse cx="82" cy="158" rx="44" ry="6" fill="#DDE5D8"/>
+<ellipse cx="64" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="64" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<ellipse cx="100" cy="150" rx="16" ry="8" fill="#183C33"/>
+<ellipse cx="100" cy="147" rx="13" ry="7" fill="#FFF0CC"/>
+<g>
+<rect x="46" y="24" width="84" height="118" rx="16" fill="#183C33"/>
+<rect x="49" y="27" width="76" height="111" rx="12" fill="#FFF0CC"/>
+<path d="M 116 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 120 37 V 127" fill="none" stroke="#D9CDAF" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="35" y="18" width="87" height="121" rx="15" fill="#2E7C58"/>
+<rect x="35" y="18" width="14" height="121" rx="13" fill="#19573B"/>
+<rect x="52" y="28" width="61" height="100" rx="9" fill="none" stroke="#69A17A" stroke-width="1.6"/>
+<path d="M 99 20 H 112 V 49 L 105.5 43 L 99 49 Z" fill="#E6B34B"/>
+<ellipse cx="69" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="69" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="70.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<ellipse cx="96" cy="70" rx="10" ry="13" fill="#FFF5D9"/>
+<ellipse cx="96" cy="72" rx="4.7" ry="6" fill="#183C33"/>
+<circle cx="97.5" cy="69" r="1.4" fill="#FFFFFF"/>
+<path d="M 60 50 Q 67 47 75 50 M 89 50 Q 96 47 103 50" fill="none" stroke="#183C33" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" />
+<path d="M 74 92 Q 83 96 93 92 Q 92 108 83 108 Q 75 106 74 92Z" fill="#183C33"/>
+<path d="M 79 104 Q 84 99 90 104 Q 85 110 79 104Z" fill="#E9A385"/>
+<circle cx="83" cy="117" r="3" fill="#E6B34B"/>
+<path d="M 74 117 H 92" fill="none" stroke="#E6B34B" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
+</g>
+<g transform="translate(10 65) rotate(-34)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+<g transform="translate(152 60) rotate(32)">
+<path d="M -12 0 C -20 -5 -18 -14 -14 -15 C -11 -16 -9 -11 -8 -8 L -7 -19 C -7 -25 -1 -25 0 -19 L 2 -12 L 5 -19 C 8 -25 13 -22 12 -16 L 9 -6 C 24 10 9 18 -4 14 C -14 13 -19 7 -12 0Z" fill="#FFF0CC" stroke="#183C33" stroke-width="2.5"/>
+</g>
+</g>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(63 235) scale(1)"/>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(321 254) scale(0.6)"/>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(92 371) scale(0.55)"/>
+<path d="M 0 -12 Q 3 -3 12 0 Q 3 3 0 12 Q -3 3 -12 0 Q -3 -3 0 -12Z" fill="#E6B34B" transform="translate(305 393) scale(0.8)"/>
+<text x="195" y="471" font-size="28" fill="#183C33" font-weight="700" text-anchor="middle">
+<tspan x="195" dy="0">One idea learned.</tspan>
+</text>
+<text x="195" y="505" font-size="15" fill="#5B6E65" font-weight="400" text-anchor="middle">
+<tspan x="195" dy="0">Practised today. Review it later</tspan>
+<tspan x="195" dy="23">to strengthen your recall.</tspan>
+</text>
+<rect x="20" y="568" width="166" height="83" rx="18" fill="#EAF3E2"/>
+<text x="103" y="603" font-size="25" fill="#2E7C58" font-weight="700" text-anchor="middle">
+<tspan x="103" dy="0">1 / 2</tspan>
+</text>
+<text x="103" y="629" font-size="11" fill="#5B6E65" font-weight="500" text-anchor="middle">
+<tspan x="103" dy="0">lessons complete</tspan>
+</text>
+<rect x="204" y="568" width="166" height="83" rx="18" fill="#EAF3E2"/>
+<text x="287" y="603" font-size="25" fill="#2E7C58" font-weight="700" text-anchor="middle">
+<tspan x="287" dy="0">1 day</tspan>
+</text>
+<text x="287" y="629" font-size="11" fill="#5B6E65" font-weight="500" text-anchor="middle">
+<tspan x="287" dy="0">of meaningful study</tspan>
+</text>
+<rect x="20" y="675" width="350" height="44" rx="16" fill="#FFFCF5" stroke="#B9CCBE" stroke-width="2"/>
+<text x="195.0" y="702.0" font-size="14" fill="#2E7C58" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">REVIEW THIS LESSON</tspan>
+</text>
+<rect x="0" y="730" width="390" height="114" rx="0" fill="#FFFCF5"/>
+<path d="M 0 730 H 390" fill="none" stroke="#E0E7DB" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+<rect x="147" y="829" width="96" height="4" rx="2" fill="#C0CBBE"/>
+<rect x="20" y="749" width="350" height="54" rx="16" fill="#19573B"/>
+<rect x="20" y="744" width="350" height="54" rx="16" fill="#2E7C58"/>
+<text x="195.0" y="776.0" font-size="14" fill="#FFFFFF" font-weight="700" text-anchor="middle">
+<tspan x="195.0" dy="0">CONTINUE YOUR PATH</tspan>
+</text>
+</g>
+<text x="912" y="2028" font-size="19" fill="#183C33" font-weight="700" text-anchor="start">
+<tspan x="912" dy="0">06  Save and celebrate</tspan>
+</text>
+<text x="912" y="2056" font-size="12" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="912" dy="0">A book celebration and an honest next step.</tspan>
+</text>
+<text x="44" y="2124" font-size="13" fill="#5B6E65" font-weight="400" text-anchor="start">
+<tspan x="44" dy="0">Original Athar vector artwork. Adapt to native insets, large text and assistive technology; the brief defines live motion and behaviour.</tspan>
+</text>
+</g></svg>
