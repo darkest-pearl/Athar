@@ -57,7 +57,9 @@ def seek_text(text):
 def tap(text):
     for _ in range(8):
         root = tree()
-        matches = [n for n in root.iter('node') if n.get('text') == text and n.get('enabled') == 'true']
+        matches = [n for n in root.iter('node') if
+            (n.get('text') == text or n.get('content-desc') == text) and
+            n.get('enabled') == 'true']
         if matches:
             b = list(map(int, re.findall(r'\d+', matches[-1].get('bounds', ''))))
             if len(b) == 4 and b[2] > b[0] and b[3] > b[1]:
