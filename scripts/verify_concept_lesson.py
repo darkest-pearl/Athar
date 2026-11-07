@@ -45,10 +45,17 @@ def motion_reduced():
 assert os.environ.get('ATHAR_ISOLATED_QA') == '1', (
     'This fresh-install walkthrough clears only the disposable CI emulator app')
 adb('shell', 'cmd', 'connectivity', 'airplane-mode', 'enable')
-adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', '1')
 adb('root')
 adb('wait-for-device')
 assert adb('shell', 'id', '-u').strip() == '0', 'Hosted emulator needs root for due-date QA'
+motion_scales = ('window_animation_scale', 'transition_animation_scale',
+    'animator_duration_scale')
+for scale in motion_scales:
+    adb('shell', 'settings', 'put', 'global', scale, '1')
+observed_scales = {scale: adb('shell', 'settings', 'get', 'global', scale).strip()
+    for scale in motion_scales}
+assert all(float(value) == 1.0 for value in observed_scales.values()), observed_scales
+(OUT / 'motion-scales.json').write_text(json.dumps(observed_scales, indent=2), encoding='utf8')
 adb('shell', 'pm', 'clear', PKG)
 recording = start_recording('concept-walkthrough')
 launch()
@@ -80,6 +87,7 @@ capture('concept-corrected')
 tap('Source · Learn more')
 assert seek_text('Athar neutral engineering notes')
 capture('concept-source')
+tap('Close source')
 tap('Continue')
 assert has('What this means')
 tap('Continue')
@@ -180,6 +188,6 @@ adb('shell', 'settings', 'put', 'system', 'accelerometer_rotation', '1')
     first_response_and_correction=True, feedback_restored=True,
     source_resolved=True, application=True, mistake_replay=True, completion=True,
     path_transition=True, due_review=True, independent_recall=True,
-    progress_reopened=True, animated_walkthrough=True,
+    progress_reopened=True, normal_motion_scales_enabled=True,
     reduced_motion_persisted=True, large_text=True, small_phone=True,
     landscape=True), indent=2), encoding='utf8')

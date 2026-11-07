@@ -53,8 +53,8 @@ private fun pose(mood: BookMood) = when (mood) {
         pupilX = 2f, pupilY = -2f)
     BookMood.Encourage -> BookPose(0f, -20f, rightX = 5f, rightY = -7f)
     BookMood.Correct -> BookPose(-18f, 18f, leftY = -8f, rightY = -8f)
-    BookMood.Complete -> BookPose(-28f, 28f, leftX = -8f, rightX = 8f,
-        leftY = -13f, rightY = -13f)
+    BookMood.Complete -> BookPose(-30f, 30f, leftX = -10f, rightX = 10f,
+        leftY = -32f, rightY = -32f)
 }
 
 /**
@@ -195,7 +195,7 @@ fun BookCompanion(mood: BookMood, eventId: Int = 0, playEvent: Boolean = false,
                 drawBookPages(page, ink)
                 drawBookCover(cover, coverDark)
                 drawBookBookmark(Color(0xFFD89A50), bookmark.value)
-                drawBookEyes(page, ink, pupilX, pupilY, eyelids.value)
+                drawBookEyes(page, ink, pupilX, pupilY, eyelids.value, mood)
                 drawBookMouth(ink, mood)
             }
             drawBookHand(page, ink, 24f + leftX, 99f + leftY + body.value + settle.value,
@@ -245,10 +245,18 @@ private fun DrawScope.drawBookBookmark(color: Color, angle: Float) {
 }
 
 private fun DrawScope.drawBookEyes(page: Color, ink: Color, lookX: Float,
-    lookY: Float, blink: Float) {
-    listOf(69f, 97f).forEach { x ->
+    lookY: Float, blink: Float, mood: BookMood) {
+    listOf(69f, 97f).forEachIndexed { index, x ->
         drawOval(page, Offset(x - 9f, 59f), Size(18f, 22f))
         drawCircle(ink, 4.5f, Offset(x + lookX, 70f + lookY))
+        val tilt = when (mood) {
+            BookMood.Think -> if (index == 0) -4f else 3f
+            BookMood.Encourage -> if (index == 0) 3f else -3f
+            BookMood.Correct, BookMood.Complete -> 0f
+            else -> 0f
+        }
+        drawLine(ink, Offset(x - 8f, 53f + tilt), Offset(x + 8f, 53f - tilt),
+            2.5f, cap = StrokeCap.Round)
         if (blink > 0f) drawRoundRect(Color(0xFF236247),
             Offset(x - 10f, 57f), Size(20f, 24f * blink), CornerRadius(4f))
     }
