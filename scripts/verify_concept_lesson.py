@@ -17,6 +17,36 @@ def start_recording(name):
     return process, remote, time.monotonic()
 
 
+def mp4_duration(path):
+    """Read the MP4 movie clock so tap markers use video, not host, seconds."""
+    data = path.read_bytes()
+    def boxes(start, end):
+        while start + 8 <= end:
+            size = int.from_bytes(data[start:start + 4], 'big')
+            header = 8
+            if size == 1:
+                size = int.from_bytes(data[start + 8:start + 16], 'big')
+                header = 16
+            elif size == 0:
+                size = end - start
+            if size < header or start + size > end:
+                raise AssertionError('Invalid MP4 box size')
+            yield data[start + 4:start + 8], start + header, start + size
+            start += size
+    for kind, begin, end in boxes(0, len(data)):
+        if kind == b'moov':
+            for child, pos, _ in boxes(begin, end):
+                if child == b'mvhd':
+                    version = data[pos]
+                    offset = pos + (12 if version == 0 else 20)
+                    width = 4 if version == 0 else 8
+                    timescale = int.from_bytes(data[offset:offset + 4], 'big')
+                    duration = int.from_bytes(data[offset + 4:offset + 4 + width], 'big')
+                    assert timescale > 0
+                    return duration / timescale
+    raise AssertionError('MP4 movie clock missing')
+
+
 def stop_recording(recording, name):
     process, remote, started = recording
     elapsed = time.monotonic() - started
@@ -27,10 +57,12 @@ def stop_recording(recording, name):
     if pids:
         adb('shell', 'kill', '-2', pids[0])
     process.communicate(timeout=30)
-    adb('pull', remote, str(OUT / (name + '.mp4')))
-    assert (OUT / (name + '.mp4')).stat().st_size > 10000
+    path = OUT / (name + '.mp4')
+    adb('pull', remote, str(path))
+    assert path.stat().st_size > 10000
     assert pids and process.returncode == 0, (
         f'Emulator recording ended at its 180-second limit after {elapsed:.1f}s; inspect video')
+    return mp4_duration(path) - elapsed
 
 
 def companion_is(mood):
@@ -140,8 +172,10 @@ assert seek_text('1 concept recalled in a later due review')
 capture('concept-progress-recalled')
 assert has('1 concept practised in lessons')
 assert has('1 concept with a corrected answer')
-stop_recording(recording, 'concept-walkthrough')
+video_clock_offset = stop_recording(recording, 'concept-walkthrough')
 assert len(motion_events) == 9, motion_events
+for event in motion_events:
+    event['seconds'] = round(event['seconds'] + video_clock_offset, 2)
 (OUT / 'motion-events.json').write_text(json.dumps(motion_events, indent=2), encoding='utf8')
 adb('shell', 'am', 'force-stop', PKG)
 launch()
