@@ -93,11 +93,11 @@ recording = start_recording('concept-walkthrough')
 motion_events = []
 
 
-def timed_tap(label, event):
+def timed_tap(label, event, hold_ms=0):
     def mark():
         motion_events.append(dict(event=event,
             seconds=round(time.monotonic() - recording[2], 2)))
-    tap(label, before_input=mark)
+    tap(label, before_input=mark, hold_ms=hold_ms)
 
 
 launch()
@@ -105,7 +105,8 @@ capture('concept-home')
 assert has('Map skills')
 assert has('DEVELOPMENT DEMO')
 capture('concept-path-before')
-timed_tap('Start lesson', 'start_lesson_press_and_welcome')
+# Hold below Android's long-press threshold so screenrecord can see the pressed face.
+timed_tap('Start lesson', 'start_lesson_press_and_welcome', hold_ms=350)
 capture('concept-teach')
 assert has('One idea')
 assert not has('Play audio')

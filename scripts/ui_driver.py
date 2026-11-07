@@ -54,7 +54,7 @@ def seek_text(text):
     return False
 
 
-def tap(text, before_input=None):
+def tap(text, before_input=None, hold_ms=0):
     for _ in range(8):
         root = tree()
         matches = [n for n in root.iter('node') if
@@ -65,7 +65,11 @@ def tap(text, before_input=None):
             if len(b) == 4 and b[2] > b[0] and b[3] > b[1]:
                 if before_input is not None:
                     before_input()
-                adb('shell', 'input', 'tap', str((b[0]+b[2])//2), str((b[1]+b[3])//2))
+                x, y = str((b[0]+b[2])//2), str((b[1]+b[3])//2)
+                if hold_ms:
+                    adb('shell', 'input', 'swipe', x, y, x, y, str(hold_ms))
+                else:
+                    adb('shell', 'input', 'tap', x, y)
                 time.sleep(.5)
                 return
         scroll = next((n for n in root.iter('node') if n.get('scrollable') == 'true'), None)
