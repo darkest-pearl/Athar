@@ -53,7 +53,10 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
                 fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
             question.choices.forEachIndexed { choiceIndex, choice ->
                 AnswerChoice(choice, selectedIndex == choiceIndex,
-                    choiceIndex == question.correctIndex, feedback || revealed, busy) {
+                    choiceIndex == question.correctIndex, feedback || revealed, busy,
+                    firstWrong = feedback && selectedIndex == choiceIndex &&
+                        choiceIndex != question.correctIndex,
+                    indicator = ('A' + choiceIndex).toString()) {
                     if (!feedback) onSelect(choiceIndex)
                 }
             }

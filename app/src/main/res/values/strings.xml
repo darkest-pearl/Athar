@@ -209,6 +209,8 @@
     <string name="concept_first_answer">Your first answer: %1$s</string>
     <string name="concept_revealed">You revealed the answer</string>
     <string name="concept_answer_why">Answer: %1$s. %2$s</string>
+    <string name="concept_full_explanation">Why this answer</string>
+    <string name="concept_source_sheet_title">Explanation and source</string>
     <string name="concept_completion_saved">Lesson saved. Practice and corrections are separate from later independent recall.</string>
     <string name="concept_path_headline">One idea at a time.</string>
     <string name="concept_path_footer">Small lessons. Steady progress.</string>

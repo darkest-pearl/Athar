@@ -10,8 +10,11 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,9 +30,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 
 /** The saved session owns every answer and cursor. Animation only presents committed state. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingSession,
     busy: Boolean, errorMessage: String?, bookMood: BookMood, bookEventId: Int,
@@ -69,21 +73,36 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
     var activityShown by remember(item.id, animateActivity) { mutableStateOf(!animateActivity) }
     LaunchedEffect(item.id, animateActivity) { activityShown = true }
     val passage = pack.textPassages[item.reference]
+    val selectedRequester = remember(item.id) { BringIntoViewRequester() }
+    LaunchedEffect(item.id, session.feedback, session.selected) {
+        if (question != null && session.feedback && session.selected >= 0) {
+            delay(320)
+            selectedRequester.bringIntoView()
+        }
+    }
     if (sourceOpen) ModalBottomSheet(onDismissRequest = { sourceOpen = false }) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.source_passage_title),
-                style = MaterialTheme.typography.titleLarge)
-            if (question != null) AnswerSourcePanel(pack, lesson, question)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.concept_source_sheet_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f))
+                TextButton(onClick = { sourceOpen = false },
+                    modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.concept_close_source))
+                }
+            }
+            if (question != null) {
+                Text(stringResource(R.string.concept_full_explanation),
+                    style = MaterialTheme.typography.titleMedium)
+                Note(question.explanation)
+                AnswerSourcePanel(pack, lesson, question)
+            }
             else if (passage != null) {
                 Text(pack.textSources.getValue(passage.sourceId).edition)
                 Text("${passage.locator} · ${passage.wording} · v${passage.version}")
                 Note(passage.text)
-            }
-            TextButton(onClick = { sourceOpen = false },
-                modifier = Modifier.align(Alignment.End).heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.concept_close_source))
             }
         }
     }
@@ -161,7 +180,13 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                 item.choiceOrder.forEachIndexed { presented, original ->
                     AnswerChoice(question.choices[original],
                         session.selected == presented, original == question.correctIndex,
-                        session.feedback && !needsCorrection, busy) {
+                        session.feedback, busy,
+                        firstWrong = session.feedback && !firstCorrect &&
+                            item.firstSelected == original,
+                        correctionAllowed = needsCorrection,
+                        indicator = ('A' + presented).toString(),
+                        modifier = if (session.selected == presented)
+                            Modifier.bringIntoViewRequester(selectedRequester) else Modifier) {
                         if (!session.feedback || needsCorrection) onSelect(presented)
                     }
                 }

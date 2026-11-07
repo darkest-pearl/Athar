@@ -11,10 +11,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -39,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 
 fun orderedLessons(pack: ContentPack): List<PackLesson> = pack.units.flatMap { unit ->
     unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
@@ -64,16 +67,23 @@ fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: Stri
     var expanded by remember { mutableStateOf(false) }
     val selected = choices.firstOrNull { it.source == selectedSource } ?: choices.firstOrNull()
     val chooseLabel = stringResource(R.string.choose_course)
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.course_selection_label),
             style = MaterialTheme.typography.labelLarge)
-        Box {
+        Box(Modifier.weight(1f)) {
             OutlinedButton(onClick = { expanded = true },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
-                    .semantics { contentDescription = chooseLabel },
+                    .semantics {
+                        contentDescription = chooseLabel
+                        stateDescription = selected?.pack?.courseTitle ?: ""
+                    },
                 shape = RoundedCornerShape(16.dp)) {
-                Text(selected?.pack?.courseTitle ?: stringResource(R.string.course_unavailable),
-                    modifier = Modifier.weight(1f), maxLines = 2)
+                Text(if (selectedSource == ContentRepository.CONCEPT_DEMO)
+                    selected?.pack?.courseTitle?.substringBefore(" · ") ?: ""
+                    else selected?.pack?.courseTitle ?: stringResource(R.string.course_unavailable),
+                    modifier = Modifier.weight(1f), maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
                 Text("⌄", modifier = Modifier.padding(start = 8.dp))
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -203,12 +213,23 @@ fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
 @Composable
 fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmarks: List<Bookmark>,
     journeys: List<LessonJourney>, pending: PendingSession?, dueCount: Int, open: (PackLesson) -> Unit,
-    openReviews: () -> Unit) {
+    openReviews: () -> Unit, unlockEvent: Int = 0, onUnlockShown: () -> Unit = {}) {
     var selectedId by rememberSaveable(pack.courseId) { mutableStateOf("") }
     val next = nextAvailableLesson(pack, completions)
     val doneCount = pack.lessons.count { lessonIsComplete(it, completions) }
     val simplePath = LocalDensity.current.fontScale >= 1.3f ||
         LocalConfiguration.current.screenWidthDp < 360
+    val unlockPulse = remember { Animatable(1f) }
+    val animateUnlock = motionAllowed()
+    LaunchedEffect(unlockEvent, animateUnlock) {
+        if (unlockEvent > 0) {
+            if (animateUnlock && next != null) {
+                unlockPulse.snapTo(0.88f)
+                unlockPulse.animateTo(1f, tween(550))
+            }
+            onUnlockShown()
+        }
+    }
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(stringResource(R.string.concept_path_headline),
             style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
@@ -278,7 +299,12 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
                         else -> MaterialTheme.colorScheme.surfaceVariant
                     }
                     Surface(onClick = { selectedId = if (selectedId == lesson.id) "" else lesson.id },
-                        modifier = Modifier.size(62.dp),
+                        modifier = Modifier.size(62.dp).graphicsLayer {
+                            if (isCurrent) {
+                                scaleX = unlockPulse.value
+                                scaleY = unlockPulse.value
+                            }
+                        },
                         shape = CircleShape, color = nodeColor,
                         border = BorderStroke(2.dp, if (available || done)
                             MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)) {

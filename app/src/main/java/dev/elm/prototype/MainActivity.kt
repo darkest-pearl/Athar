@@ -103,6 +103,7 @@ fun AtharApp(db: LearningDatabase) {
     }
     var bookEventId by remember { mutableIntStateOf(0) }
     var playedBookEvent by remember { mutableIntStateOf(0) }
+    var playedPathEvent by remember { mutableIntStateOf(0) }
     var bookEventMood by remember { mutableStateOf(BookMood.Idle) }
     fun reactWithBook(mood: BookMood) {
         bookEventMood = mood
@@ -418,7 +419,11 @@ fun AtharApp(db: LearningDatabase) {
                                 CourseScreen(active, localCompletions,
                                     bookmarks.filter { it.courseId == active.courseId },
                                     journeys.filter { it.courseId == active.courseId },
-                                    resumable, dueCount, ::openLesson) { startReviews() }
+                                    resumable, dueCount, ::openLesson,
+                                    openReviews = { startReviews() },
+                                    unlockEvent = if (bookEventMood == BookMood.Complete &&
+                                        bookEventId > playedPathEvent) bookEventId else 0,
+                                    onUnlockShown = { playedPathEvent = bookEventId })
                             }
                             "Concept" -> {
                                 val saved = pendingSessions.firstOrNull {
@@ -703,10 +708,12 @@ fun AtharApp(db: LearningDatabase) {
                                             busy = true
                                             scope.launch {
                                                 try {
-                                                    if (reviewDueItems.isNotEmpty())
+                                                    if (reviewDueItems.isNotEmpty()) {
                                                         study.completeDueReviewBatch(reviewDueItems, reviewSessionId,
                                                             active.courseId)
-                                                    else sessions.abandon(reviewSessionId)
+                                                    } else {
+                                                        sessions.abandon(reviewSessionId)
+                                                    }
                                                     reviewBatch = emptyList()
                                                     reviewDueItems = emptyList()
                                                     reviewFinished = true
