@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -81,7 +82,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
         }
     }
     if (sourceOpen) ModalBottomSheet(onDismissRequest = { sourceOpen = false }) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
+        Column(Modifier.fillMaxWidth().navigationBarsPadding()
             .padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -93,6 +94,11 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                     Text(stringResource(R.string.concept_close_source))
                 }
             }
+            Column(Modifier.fillMaxWidth()
+                .heightIn(max = (LocalConfiguration.current.screenHeightDp - 180)
+                    .coerceAtLeast(160).dp)
+                .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (question != null) {
                 Text(stringResource(R.string.concept_full_explanation),
                     style = MaterialTheme.typography.titleMedium)
@@ -103,6 +109,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                 Text(pack.textSources.getValue(passage.sourceId).edition)
                 Text("${passage.locator} · ${passage.wording} · v${passage.version}")
                 Note(passage.text)
+            }
             }
         }
     }
