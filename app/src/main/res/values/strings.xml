@@ -2,7 +2,14 @@
     <string name="session_loading_title">Loading saved study…</string>
     <string name="app_name">Athar · prototype</string>
     <string name="nav_today">Today</string>
-    <string name="nav_learn">Path</string>
+    <string name="nav_learn">Learn</string>
+    <string name="course_selection_label">COURSE</string>
+    <string name="choose_course">Choose course</string>
+    <string name="select_course_option">Select course: %1$s</string>
+    <string name="concept_demo_choice">Neutral concept demo · text first</string>
+    <string name="legacy_demo_choice">Legacy controls demo · audio test</string>
+    <string name="imported_course_choice">Imported local course</string>
+    <string name="course_unavailable">Course unavailable</string>
     <string name="continue_lesson">Continue lesson</string>
     <string name="nav_review">Review</string>
     <string name="nav_progress">Progress</string>

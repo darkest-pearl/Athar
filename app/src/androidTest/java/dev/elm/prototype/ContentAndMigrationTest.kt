@@ -21,6 +21,31 @@ class ContentAndMigrationTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private fun fixture() = context.assets.open("fixture-pack.json").use { it.readBytes() }
 
+    @Test fun freshDefaultAndPreUpgradeImportRemainSelectableAfterRestart() {
+        val sandbox = File(context.cacheDir, "course-selection-test").apply { mkdirs() }
+        sandbox.listFiles()?.forEach { it.delete() }
+        val wrapped = object : ContextWrapper(context) { override fun getFilesDir(): File = sandbox }
+        val repo = ContentRepository(wrapped)
+        assertEquals("concept-lab", repo.load().courseId)
+        assertEquals(ContentRepository.CONCEPT_DEMO, repo.selectedSource())
+        assertEquals("controls-course", repo.select(ContentRepository.LEGACY_DEMO).courseId)
+        assertEquals("concept-lab", repo.select(ContentRepository.CONCEPT_DEMO).courseId)
+
+        // An older installation has an active pack but no selection file.
+        File(sandbox, "selected-content-source.txt").delete()
+        File(sandbox, "active-pack.json").writeBytes(fixture())
+        val upgraded = ContentRepository(wrapped)
+        assertEquals(ContentRepository.IMPORTED, upgraded.selectedSource())
+        assertEquals("controls-course", upgraded.load().courseId)
+        assertEquals("concept-lab", upgraded.select(ContentRepository.CONCEPT_DEMO).courseId)
+        val reopened = ContentRepository(wrapped)
+        assertEquals("concept-lab", reopened.load().courseId)
+        assertEquals("controls-course", reopened.select(ContentRepository.IMPORTED).courseId)
+        assertTrue(File(sandbox, "active-pack.json").readBytes().contentEquals(fixture()))
+        sandbox.listFiles()?.forEach { it.delete() }
+        sandbox.delete()
+    }
+
     @Test fun textOnlyPackHasNoFabricatedAudioAndRejectsStalePassages() {
         val bytes = context.assets.open("concept-fixture-pack.json").use { it.readBytes() }
         val pack = ContentPackParser.parse(bytes)
@@ -154,18 +179,20 @@ class ContentAndMigrationTest {
         val wrapped = object : ContextWrapper(context) { override fun getFilesDir(): File = sandbox }
         val repo = ContentRepository(wrapped)
         val initial = repo.load()
-        assertEquals(initial, repo.importBytes(fixture(), initial))
+        assertEquals("controls-course", repo.importBytes(fixture(), initial).courseId)
         val changedSameVersion = fixture().toString(Charsets.UTF_8)
             .replace("Learn the controls", "Different title")
         assertTrue(runCatching {
             repo.importBytes(changedSameVersion.toByteArray(), initial)
         }.isFailure)
         assertTrue(runCatching { repo.importBytes("{".toByteArray(), initial) }.isFailure)
-        assertEquals(initial.canonicalJson, repo.load().canonicalJson)
+        assertEquals("controls-course", repo.load().courseId)
         File(sandbox, "active-pack.json").delete()
         File(sandbox, "active-pack.json.bak").delete()
         File(sandbox, "content-identity-ledger.json").delete()
         File(sandbox, "content-identity-ledger.json.bak").delete()
+        File(sandbox, "selected-content-source.txt").delete()
+        File(sandbox, "selected-content-source.txt.bak").delete()
         sandbox.delete()
     }
 
@@ -187,6 +214,8 @@ class ContentAndMigrationTest {
         File(sandbox, "active-pack.json.bak").delete()
         File(sandbox, "content-identity-ledger.json").delete()
         File(sandbox, "content-identity-ledger.json.bak").delete()
+        File(sandbox, "selected-content-source.txt").delete()
+        File(sandbox, "selected-content-source.txt.bak").delete()
         sandbox.delete()
     }
 

@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -50,6 +51,47 @@ fun lessonIsAvailable(pack: ContentPack, lesson: PackLesson,
 fun nextAvailableLesson(pack: ContentPack, completions: List<LessonCompletion>): PackLesson? =
     orderedLessons(pack).firstOrNull { !lessonIsComplete(it, completions) &&
         lessonIsAvailable(pack, it, completions) }
+
+@Composable
+fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: String,
+    onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val selected = choices.firstOrNull { it.source == selectedSource } ?: choices.firstOrNull()
+    val chooseLabel = stringResource(R.string.choose_course)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.course_selection_label),
+            style = MaterialTheme.typography.labelLarge)
+        Box {
+            OutlinedButton(onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                    .semantics { contentDescription = chooseLabel },
+                shape = RoundedCornerShape(16.dp)) {
+                Text(selected?.pack?.courseTitle ?: stringResource(R.string.course_unavailable),
+                    modifier = Modifier.weight(1f), maxLines = 2)
+                Text("⌄", modifier = Modifier.padding(start = 8.dp))
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                choices.forEach { choice ->
+                    val optionLabel = stringResource(R.string.select_course_option,
+                        choice.pack.courseTitle)
+                    DropdownMenuItem(text = {
+                        Column {
+                            Text(choice.pack.courseTitle)
+                            Text(stringResource(when (choice.source) {
+                                ContentRepository.CONCEPT_DEMO -> R.string.concept_demo_choice
+                                ContentRepository.LEGACY_DEMO -> R.string.legacy_demo_choice
+                                else -> R.string.imported_course_choice
+                            }), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }, onClick = {
+                        expanded = false
+                        onSelect(choice.source)
+                    }, modifier = Modifier.semantics { contentDescription = optionLabel })
+                }
+            }
+        }
+    }
+}
 
 @Composable private fun CourseProgress(done: Int, total: Int, label: String) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -152,7 +194,7 @@ fun TodayScreen(pack: ContentPack, completions: List<LessonCompletion>,
 
 @Composable
 fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmarks: List<Bookmark>,
-    journeys: List<LessonJourney>, dueCount: Int, open: (PackLesson) -> Unit,
+    journeys: List<LessonJourney>, pending: PendingSession?, dueCount: Int, open: (PackLesson) -> Unit,
     openReviews: () -> Unit) {
     var selectedId by rememberSaveable(pack.courseId) { mutableStateOf("") }
     val current = nextAvailableLesson(pack, completions)?.id
@@ -162,6 +204,20 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(stringResource(R.string.path_title), style = MaterialTheme.typography.headlineMedium,
             fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
+        nextAvailableLesson(pack, completions)?.let { next ->
+            Surface(color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(20.dp)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.your_next_step),
+                        style = MaterialTheme.typography.labelLarge)
+                    Text(next.title, style = MaterialTheme.typography.titleLarge)
+                    Action(stringResource(if (pending?.lessonId == next.id &&
+                        pending.courseId == pack.courseId) R.string.session_continue_action
+                        else R.string.start_lesson)) { open(next) }
+                }
+            }
+        }
         Text(pack.courseTitle, style = MaterialTheme.typography.titleMedium,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
         if (simplePath) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
