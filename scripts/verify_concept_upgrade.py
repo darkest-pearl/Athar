@@ -12,7 +12,7 @@ assert baseline.is_file() and candidate.is_file()
 assert 'Success' in adb('install', '-r', str(baseline))
 adb('shell', 'pm', 'clear', PKG)
 launch()
-assert has('App controls'), 'Baseline normal launch did not open its legacy course'
+assert has('Learn the controls'), 'Baseline normal launch did not open its legacy lesson'
 capture('upgrade-baseline-today')
 tap('Start lesson')
 tap('Start listening')
