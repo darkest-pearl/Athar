@@ -42,22 +42,20 @@ def motion_reduced():
     return any(n.get('checkable') == 'true' and n.get('checked') == 'true'
         for n in tree().iter('node'))
 
-adb('shell', 'am', 'force-stop', PKG)
-adb('push', 'content/concept-fixture-pack.json', '/data/local/tmp/concept-fixture-pack.json')
-adb('shell', 'run-as', PKG, 'mkdir', '-p', 'files')
-adb('shell', 'run-as', PKG, 'cp', '/data/local/tmp/concept-fixture-pack.json',
-    'files/active-pack.json')
+assert os.environ.get('ATHAR_ISOLATED_QA') == '1', (
+    'This fresh-install walkthrough clears only the disposable CI emulator app')
 adb('shell', 'cmd', 'connectivity', 'airplane-mode', 'enable')
 adb('shell', 'settings', 'put', 'global', 'animator_duration_scale', '1')
 adb('root')
 adb('wait-for-device')
 assert adb('shell', 'id', '-u').strip() == '0', 'Hosted emulator needs root for due-date QA'
+adb('shell', 'pm', 'clear', PKG)
+recording = start_recording('concept-walkthrough')
 launch()
 capture('concept-home')
-tap('Path')
+assert has('Map skills')
+assert has('DEVELOPMENT DEMO')
 capture('concept-path-before')
-recording = start_recording('concept-walkthrough')
-tap('1')
 tap('Start lesson')
 capture('concept-teach')
 assert has('One idea')
@@ -109,7 +107,6 @@ adb('shell', 'date', '-u', '-s', '@' + str(future))
 assert int(adb('shell', 'date', '+%s').strip()) >= future
 adb('shell', 'am', 'force-stop', PKG)
 launch()
-tap('Path')
 capture('concept-path-due')
 assert has('Due reviews: 1')
 tap('Start review batch')

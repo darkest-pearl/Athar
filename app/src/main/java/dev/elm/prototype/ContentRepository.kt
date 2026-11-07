@@ -387,11 +387,39 @@ object ContentPackParser {
 class ContentRepository(private val context: Context) {
     private val activeFile = File(context.filesDir, "active-pack.json")
     private val ledgerFile = File(context.filesDir, "content-identity-ledger.json")
+    private val selectionFile = File(context.filesDir, "selected-content-source.txt")
+    companion object {
+        const val CONCEPT_DEMO = "concept-demo"
+        const val LEGACY_DEMO = "legacy-demo"
+        const val IMPORTED = "imported"
+    }
+    data class Choice(val source: String, val pack: ContentPack)
+
+    /** A missing selection preserves the pre-upgrade meaning of an existing active pack. */
+    fun selectedSource(): String = selectionFile.takeIf { it.exists() }?.readText()?.trim()
+        ?: if (activeFile.exists()) IMPORTED else CONCEPT_DEMO
+
+    fun choices(): List<Choice> = buildList {
+        add(Choice(CONCEPT_DEMO, bundled("concept-fixture-pack.json")))
+        add(Choice(LEGACY_DEMO, bundled("fixture-pack.json")))
+        if (activeFile.exists()) runCatching {
+            add(Choice(IMPORTED, ContentPackParser.parse(readBounded(activeFile.inputStream()))))
+        }
+    }
+
+    fun select(source: String): ContentPack {
+        val pack = choices().firstOrNull { it.source == source }?.pack
+            ?: throw IllegalArgumentException("Selected course is unavailable")
+        writeAtomic(selectionFile, source.toByteArray(Charsets.UTF_8))
+        return pack
+    }
+
+    private fun bundled(name: String): ContentPack =
+        ContentPackParser.parse(readBounded(context.assets.open(name)))
+
     fun load(): ContentPack {
-        val bundled = ContentPackParser.parse(readBounded(context.assets.open("fixture-pack.json")))
-        if (!activeFile.exists()) return bundled
-        return try { ContentPackParser.parse(readBounded(activeFile.inputStream())) }
-        catch (_: Exception) { bundled }
+        return choices().firstOrNull { it.source == selectedSource() }?.pack
+            ?: bundled("concept-fixture-pack.json")
     }
     fun import(uri: Uri, current: ContentPack): ContentPack {
         val bytes = context.contentResolver.openInputStream(uri)?.use(::readBounded)
@@ -401,7 +429,10 @@ class ContentRepository(private val context: Context) {
     fun importBytes(bytes: ByteArray, current: ContentPack): ContentPack {
         val candidate = ContentPackParser.parse(bytes)
         val ledger = if (ledgerFile.exists()) JSONObject(ledgerFile.readText()) else JSONObject()
-        val known = identities(current)
+        val known = identities(current).toMutableMap()
+        if (activeFile.exists()) runCatching {
+            known.putAll(identities(ContentPackParser.parse(readBounded(activeFile.inputStream()))))
+        }
         known.forEach { (key, fingerprint) ->
             if (!ledger.has(key)) ledger.put(key, fingerprint)
         }
@@ -422,6 +453,7 @@ class ContentRepository(private val context: Context) {
         }
         writeAtomic(ledgerFile, ledger.toString().toByteArray(Charsets.UTF_8))
         writeAtomic(activeFile, bytes)
+        writeAtomic(selectionFile, IMPORTED.toByteArray(Charsets.UTF_8))
         return candidate
     }
     private fun identities(pack: ContentPack): Map<String, String> {

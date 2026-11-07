@@ -77,6 +77,7 @@ fun AtharApp(db: LearningDatabase) {
     val contentRepo = remember { ContentRepository(context) }
     val initial = remember { runCatching { contentRepo.load() } }
     var pack by remember { mutableStateOf(initial.getOrNull()) }
+    var selectedCourseSource by remember { mutableStateOf(contentRepo.selectedSource()) }
     val completionSnapshot by remember(dao) { dao.observeLessonCompletions() }
         .collectAsState<List<LessonCompletion>, List<LessonCompletion>?>(initial = null)
     val completions = completionSnapshot.orEmpty()
@@ -94,7 +95,8 @@ fun AtharApp(db: LearningDatabase) {
         // Observations trigger refresh only; the repository reads completions atomically.
         if (completionSnapshot != null) pack?.let { reviews.ensureSeeded(it) }
     }
-    var page by rememberSaveable { mutableStateOf("Today") }
+    var page by rememberSaveable { mutableStateOf("Learn") }
+    LaunchedEffect(page) { if (page == "Today") page = "Learn" }
     var direction by rememberSaveable { mutableStateOf(Direction.Garden) }
     var reducedMotion by remember {
         mutableStateOf(prefs.getBoolean("reduced-book-motion", false))
@@ -208,6 +210,7 @@ fun AtharApp(db: LearningDatabase) {
                 try {
                     val next = withContext(Dispatchers.IO) { contentRepo.import(uri, current) }
                     pack = next
+                    selectedCourseSource = ContentRepository.IMPORTED
                     lessonId = ""
                     reviewBatch = emptyList()
                     reviewDueItems = emptyList()
@@ -287,7 +290,7 @@ fun AtharApp(db: LearningDatabase) {
     LaunchedEffect(page, lessonId, currentStage, questionIndex, reviewIndex, reviewFeedback) {
         if (page != "Learn") scroll.scrollTo(0)
     }
-    BackHandler(page != "Today") {
+    BackHandler(page != "Learn") {
         page = when (page) {
             "Concept" -> "Learn"
             "Quiz" -> "Lesson"
@@ -300,8 +303,8 @@ fun AtharApp(db: LearningDatabase) {
                 } catch (_: Exception) { error = context.getString(R.string.study_save_failed) } }
                 "Lesson"
             } else "Learn"
-            "Review" -> if (reviewReturnToLesson) "Lesson" else "Today"
-            else -> "Today"
+            "Review" -> if (reviewReturnToLesson) "Lesson" else "Learn"
+            else -> "Learn"
         }
     }
     ElmTheme(direction) {
@@ -395,10 +398,27 @@ fun AtharApp(db: LearningDatabase) {
                             "Learn" -> if (completionSnapshot == null || journeySnapshot == null ||
                                 reviewSnapshot == null || bookmarkSnapshot == null) {
                                 Title(stringResource(R.string.session_loading_title))
-                            } else CourseScreen(active, localCompletions,
-                                bookmarks.filter { it.courseId == active.courseId },
-                                journeys.filter { it.courseId == active.courseId },
-                                dueCount, ::openLesson) { startReviews() }
+                            } else {
+                                CourseSelector(contentRepo.choices(), selectedCourseSource) { source ->
+                                    if (!busy && source != selectedCourseSource) {
+                                        runCatching { contentRepo.select(source) }.onSuccess { next ->
+                                            pack = next
+                                            selectedCourseSource = source
+                                            lessonId = ""
+                                            reviewBatch = emptyList()
+                                            reviewDueItems = emptyList()
+                                            error = null
+                                        }.onFailure {
+                                            error = context.getString(R.string.content_error,
+                                                it.message ?: context.getString(R.string.invalid_document))
+                                        }
+                                    }
+                                }
+                                CourseScreen(active, localCompletions,
+                                    bookmarks.filter { it.courseId == active.courseId },
+                                    journeys.filter { it.courseId == active.courseId },
+                                    resumable, dueCount, ::openLesson) { startReviews() }
+                            }
                             "Concept" -> {
                                 val saved = pendingSessions.firstOrNull {
                                     it.id == sessionId && it.kind == "concept"
@@ -564,7 +584,7 @@ fun AtharApp(db: LearningDatabase) {
                                 Title(stringResource(R.string.session_unavailable_title))
                                 Note(stringResource(R.string.session_unavailable_note))
                                 Action(stringResource(R.string.session_close_action)) {
-                                    scope.launch { sessions.abandon(sessionId); page = "Today" }
+                                    scope.launch { sessions.abandon(sessionId); page = "Learn" }
                                 }
                             } else {
                                 val saved = pendingSessions.first { it.id == sessionId && it.kind == "lesson" }
@@ -704,7 +724,7 @@ fun AtharApp(db: LearningDatabase) {
                                             scope.launch {
                                                 sessions.abandon(reviewSessionId)
                                                 reviewBatch = emptyList()
-                                                page = "Today"
+                                                page = "Learn"
                                             }
                                         }
                                     } else {
@@ -776,7 +796,7 @@ fun AtharApp(db: LearningDatabase) {
                                     else Direction.Garden
                                 },
                                 onImport = { if (!busy) importer.launch(arrayOf("*/*")) },
-                                onHome = { page = "Today" })
+                                onHome = { page = "Learn" })
                         }
                     }
                   }
@@ -789,9 +809,8 @@ fun AtharApp(db: LearningDatabase) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp,
                     vertical = if (compactHeight) 0.dp else 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    listOf("Today", "Learn", "Review", "Progress").forEach { destination ->
+                    listOf("Learn", "Review", "Progress").forEach { destination ->
                         val label = when (destination) {
-                            "Today" -> R.string.nav_today
                             "Learn" -> R.string.nav_learn
                             "Review" -> R.string.nav_review
                             else -> R.string.nav_progress
