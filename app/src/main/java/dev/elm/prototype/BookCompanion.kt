@@ -53,8 +53,8 @@ private fun pose(mood: BookMood) = when (mood) {
         pupilX = 2f, pupilY = -2f)
     BookMood.Encourage -> BookPose(0f, -20f, rightX = 5f, rightY = -7f)
     BookMood.Correct -> BookPose(-18f, 18f, leftY = -8f, rightY = -8f)
-    BookMood.Complete -> BookPose(-28f, 28f, leftX = -8f, rightX = 8f,
-        leftY = -13f, rightY = -13f)
+    BookMood.Complete -> BookPose(-30f, 30f, leftX = -10f, rightX = 10f,
+        leftY = -32f, rightY = -32f)
 }
 
 /**
@@ -252,7 +252,7 @@ private fun DrawScope.drawBookEyes(page: Color, ink: Color, lookX: Float,
         val tilt = when (mood) {
             BookMood.Think -> if (index == 0) -4f else 3f
             BookMood.Encourage -> if (index == 0) 3f else -3f
-            BookMood.Correct, BookMood.Complete -> if (index == 0) -2f else 2f
+            BookMood.Correct, BookMood.Complete -> 0f
             else -> 0f
         }
         drawLine(ink, Offset(x - 8f, 53f + tilt), Offset(x + 8f, 53f - tilt),

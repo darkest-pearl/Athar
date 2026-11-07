@@ -197,6 +197,7 @@ fun ConceptLessonScreen(pack: ContentPack, lesson: PackLesson, session: PendingS
                         if (!session.feedback || needsCorrection) onSelect(presented)
                     }
                 }
+                if (session.feedback) Spacer(Modifier.height(28.dp))
                 if (!session.feedback) {
                     if (question.hint.isNotBlank()) {
                         TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
