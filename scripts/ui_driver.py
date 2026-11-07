@@ -54,7 +54,7 @@ def seek_text(text):
     return False
 
 
-def tap(text):
+def tap(text, before_input=None):
     for _ in range(8):
         root = tree()
         matches = [n for n in root.iter('node') if
@@ -63,6 +63,8 @@ def tap(text):
         if matches:
             b = list(map(int, re.findall(r'\d+', matches[-1].get('bounds', ''))))
             if len(b) == 4 and b[2] > b[0] and b[3] > b[1]:
+                if before_input is not None:
+                    before_input()
                 adb('shell', 'input', 'tap', str((b[0]+b[2])//2), str((b[1]+b[3])//2))
                 time.sleep(.5)
                 return
