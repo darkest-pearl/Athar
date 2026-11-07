@@ -39,8 +39,8 @@ assert 'Success' in adb('install', '-r', str(candidate)), 'In-place APK update f
 launch()
 assert has('Map skills'), 'New default did not appear after legacy upgrade'
 capture('upgrade-new-default')
-tap('Map skills · neutral development fixture')
-tap('App controls')
+tap('Choose course')
+tap('Select course: App controls')
 assert has('1 of 2 lessons complete'), 'Saved legacy completion disappeared'
 capture('upgrade-selected-legacy')
 tap('Continue study')
@@ -52,8 +52,8 @@ adb('shell', 'am', 'force-stop', PKG)
 launch()
 assert has('App controls') and has('1 of 2 lessons complete'), (
     'Selected legacy course or completion did not persist across restart')
-tap('App controls')
-tap('Map skills · neutral development fixture')
+tap('Choose course')
+tap('Select course: Map skills · neutral development fixture')
 tap('Start lesson')
 assert has('One idea'), 'Visible course switch did not open concept teaching'
 capture('upgrade-concept-teaching')

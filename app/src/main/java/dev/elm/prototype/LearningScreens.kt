@@ -11,6 +11,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -56,12 +57,14 @@ fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: Stri
     onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     val selected = choices.firstOrNull { it.source == selectedSource } ?: choices.firstOrNull()
+    val chooseLabel = stringResource(R.string.choose_course)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(stringResource(R.string.course_selection_label),
             style = MaterialTheme.typography.labelLarge)
         Box {
             OutlinedButton(onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+                    .semantics { contentDescription = chooseLabel },
                 shape = RoundedCornerShape(16.dp)) {
                 Text(selected?.pack?.courseTitle ?: stringResource(R.string.course_unavailable),
                     modifier = Modifier.weight(1f), maxLines = 2)
@@ -69,6 +72,8 @@ fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: Stri
             }
             DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                 choices.forEach { choice ->
+                    val optionLabel = stringResource(R.string.select_course_option,
+                        choice.pack.courseTitle)
                     DropdownMenuItem(text = {
                         Column {
                             Text(choice.pack.courseTitle)
@@ -81,7 +86,7 @@ fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: Stri
                     }, onClick = {
                         expanded = false
                         onSelect(choice.source)
-                    })
+                    }, modifier = Modifier.semantics { contentDescription = optionLabel })
                 }
             }
         }
