@@ -1,6 +1,9 @@
 ﻿package dev.elm.prototype
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
@@ -33,6 +36,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 fun orderedLessons(pack: ContentPack): List<PackLesson> = pack.units.flatMap { unit ->
     unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
@@ -97,7 +103,9 @@ fun CourseSelector(choices: List<ContentRepository.Choice>, selectedSource: Stri
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(label, style = MaterialTheme.typography.labelLarge)
         val fraction = if (total == 0) 0f else done.toFloat() / total
-        val animated by animateFloatAsState(fraction, label = "course progress")
+        val animated by animateFloatAsState(fraction,
+            animationSpec = if (motionAllowed()) tween(500) else androidx.compose.animation.core.snap(),
+            label = "course progress")
         LinearProgressIndicator(progress = { animated },
             modifier = Modifier.fillMaxWidth().height(10.dp),
             color = MaterialTheme.colorScheme.primary,
@@ -197,41 +205,31 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
     journeys: List<LessonJourney>, pending: PendingSession?, dueCount: Int, open: (PackLesson) -> Unit,
     openReviews: () -> Unit) {
     var selectedId by rememberSaveable(pack.courseId) { mutableStateOf("") }
-    val current = nextAvailableLesson(pack, completions)?.id
+    val next = nextAvailableLesson(pack, completions)
     val doneCount = pack.lessons.count { lessonIsComplete(it, completions) }
     val simplePath = LocalDensity.current.fontScale >= 1.3f ||
         LocalConfiguration.current.screenWidthDp < 360
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(stringResource(R.string.path_title), style = MaterialTheme.typography.headlineMedium,
-            fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
-        nextAvailableLesson(pack, completions)?.let { next ->
-            Surface(color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(20.dp)) {
-                Column(Modifier.fillMaxWidth().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.your_next_step),
-                        style = MaterialTheme.typography.labelLarge)
-                    Text(next.title, style = MaterialTheme.typography.titleLarge)
-                    Action(stringResource(if (pending?.lessonId == next.id &&
-                        pending.courseId == pack.courseId) R.string.session_continue_action
-                        else R.string.start_lesson)) { open(next) }
-                }
-            }
-        }
-        Text(pack.courseTitle, style = MaterialTheme.typography.titleMedium,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (simplePath) Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(stringResource(R.string.course_progress_label), style = MaterialTheme.typography.labelLarge)
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(stringResource(R.string.concept_path_headline),
+            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+            modifier = Modifier.semantics { heading() })
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.course_progress_label),
+                style = MaterialTheme.typography.labelMedium)
             Text(stringResource(R.string.path_count, doneCount, pack.lessons.size),
-                style = MaterialTheme.typography.labelLarge)
-        } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.course_progress_label), style = MaterialTheme.typography.labelLarge)
-            Text(stringResource(R.string.path_count, doneCount, pack.lessons.size),
-                style = MaterialTheme.typography.labelLarge)
+                style = MaterialTheme.typography.labelMedium)
         }
         LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
             else doneCount.toFloat() / pack.lessons.size },
-            modifier = Modifier.fillMaxWidth().height(6.dp))
+            modifier = Modifier.fillMaxWidth().height(8.dp))
+        if (next != null) {
+            Text(stringResource(R.string.next_lesson_label, next.title),
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Action(stringResource(if (pending?.lessonId == next.id &&
+                pending.courseId == pack.courseId) R.string.session_continue_action
+                else R.string.start_lesson)) { open(next) }
+        } else Text(stringResource(R.string.path_all_complete_note),
+            style = MaterialTheme.typography.bodyMedium)
         if (dueCount > 0) Surface(color = MaterialTheme.colorScheme.tertiaryContainer,
             shape = RoundedCornerShape(16.dp)) {
             Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -242,93 +240,110 @@ fun CourseScreen(pack: ContentPack, completions: List<LessonCompletion>, bookmar
         pack.units.forEachIndexed { unitIndex, unit ->
             val lessons = unit.lessonIds.mapNotNull { id -> pack.lessons.firstOrNull { it.id == id } }
             val unitDone = lessons.count { lessonIsComplete(it, completions) }
-            Surface(color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.unit_number, unitIndex + 1),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary)
-                    Text(unit.title, style = MaterialTheme.typography.titleLarge,
-                        fontFamily = FontFamily.Serif, modifier = Modifier.semantics { heading() })
-                    Text(stringResource(R.string.path_count, unitDone, lessons.size),
-                        style = MaterialTheme.typography.labelMedium)
-                    lessons.forEachIndexed { index, lesson ->
-                        val number = pack.units.take(unitIndex).sumOf { it.lessonIds.size } + index + 1
-                        val done = lessonIsComplete(lesson, completions)
-                        val available = lessonIsAvailable(pack, lesson, completions)
-                        val isCurrent = lesson.id == current
-                        val label = when {
-                            done -> stringResource(R.string.path_state_done)
-                            !available -> stringResource(R.string.path_state_locked)
-                            isCurrent -> stringResource(R.string.path_state_current)
-                            else -> stringResource(R.string.path_state_upcoming)
+            Surface(color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(23.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(stringResource(R.string.unit_number, unitIndex + 1),
+                            style = MaterialTheme.typography.labelMedium, color = Color.White)
+                        Text(unit.title, style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold, color = Color.White,
+                            modifier = Modifier.semantics { heading() })
+                        Text(stringResource(R.string.path_count, unitDone, lessons.size),
+                            style = MaterialTheme.typography.labelMedium, color = Color.White)
+                    }
+                    BookCompanion(BookMood.Welcome, size = 76.dp)
+                }
+            }
+            lessons.forEachIndexed { index, lesson ->
+                val number = pack.units.take(unitIndex).sumOf { it.lessonIds.size } + index + 1
+                val done = lessonIsComplete(lesson, completions)
+                val available = lessonIsAvailable(pack, lesson, completions)
+                val isCurrent = lesson.id == next?.id
+                val label = when {
+                    done -> stringResource(R.string.path_state_done)
+                    !available -> stringResource(R.string.path_state_locked)
+                    isCurrent -> stringResource(R.string.path_state_current)
+                    else -> stringResource(R.string.path_state_upcoming)
+                }
+                val indent = if (simplePath) 0.dp else if (index % 2 == 0) 28.dp else 0.dp
+                Row(Modifier.fillMaxWidth().padding(start = indent).heightIn(min = 68.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    val nodeColor = when {
+                        done -> MaterialTheme.colorScheme.primary
+                        isCurrent -> MaterialTheme.colorScheme.primary
+                        available -> MaterialTheme.colorScheme.primaryContainer
+                        else -> MaterialTheme.colorScheme.surfaceVariant
+                    }
+                    Surface(onClick = { selectedId = if (selectedId == lesson.id) "" else lesson.id },
+                        modifier = Modifier.size(62.dp),
+                        shape = CircleShape, color = nodeColor,
+                        border = BorderStroke(2.dp, if (available || done)
+                            MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(when {
+                                done -> "✓"
+                                !available -> "🔒"
+                                else -> number.toString()
+                            }, fontSize = 22.sp, fontWeight = FontWeight.Bold,
+                                color = if (done || isCurrent) Color.White
+                                    else MaterialTheme.colorScheme.onSurface)
                         }
-                        val indent = if (simplePath) 0.dp else if (number % 2 == 0) 20.dp else 0.dp
-                        Row(Modifier.fillMaxWidth().padding(start = indent),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                val shape = if (done) RoundedCornerShape(16.dp) else CircleShape
-                                if (isCurrent) Button(onClick = {
-                                    selectedId = if (selectedId == lesson.id) "" else lesson.id
-                                },
-                                    modifier = Modifier.size(56.dp), shape = shape,
-                                    contentPadding = PaddingValues(0.dp)) {
-                                    Text(if (done) "✓" else number.toString(), fontSize = 20.sp)
-                                } else OutlinedButton(onClick = {
-                                    selectedId = if (selectedId == lesson.id) "" else lesson.id
-                                },
-                                    modifier = Modifier.size(56.dp), shape = shape,
-                                    border = BorderStroke(2.dp, if (available)
-                                        MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
-                                    contentPadding = PaddingValues(0.dp)) {
-                                    Text(if (done) "✓" else if (available) number.toString() else "•",
-                                        fontSize = 20.sp)
-                                }
-                                if (index < lessons.lastIndex) Surface(
-                                    modifier = Modifier.width(3.dp).height(18.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) {}
-                            }
-                            Column(Modifier.weight(1f)) {
-                                Text(lesson.title, style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                Text(label, style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary)
-                                if (bookmarks.any { it.lessonId == lesson.id })
-                                    Text(stringResource(R.string.bookmark_saved),
-                                        style = MaterialTheme.typography.labelSmall)
-                            }
-                        }
-                        AnimatedVisibility(selectedId == lesson.id,
-                            enter = fadeIn(tween(180)), exit = fadeOut(tween(90))) {
-                            Surface(color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (!available && !done)
-                                        Text(stringResource(R.string.path_prerequisite_note))
-                                    else Action(stringResource(when {
-                                        done -> R.string.revisit_lesson
-                                        journeys.any { it.lessonId == lesson.id &&
-                                            it.lessonVersion == lesson.version &&
-                                            it.stageValue() != LessonStage.Complete &&
-                                            it.stageValue() != LessonStage.Intro } ->
-                                            R.string.session_continue_action
-                                        else -> R.string.start_lesson
-                                    })) { open(lesson) }
-                                    Text(lesson.objective.ifBlank { lesson.notes },
-                                        style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(lesson.title, style = MaterialTheme.typography.titleMedium,
+                            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(label, style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        if (bookmarks.any { it.lessonId == lesson.id })
+                            Text(stringResource(R.string.bookmark_saved),
+                                style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                AnimatedVisibility(selectedId == lesson.id,
+                    enter = fadeIn(tween(if (motionAllowed()) 180 else 0)),
+                    exit = fadeOut(tween(if (motionAllowed()) 90 else 0))) {
+                    Surface(color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(lesson.objective.ifBlank { lesson.notes },
+                                style = MaterialTheme.typography.bodyMedium)
+                            if (!available && !done)
+                                Text(stringResource(R.string.path_prerequisite_note))
+                            else Action(stringResource(when {
+                                done -> R.string.revisit_lesson
+                                journeys.any { it.lessonId == lesson.id &&
+                                    it.lessonVersion == lesson.version &&
+                                    it.stageValue() != LessonStage.Complete &&
+                                    it.stageValue() != LessonStage.Intro } ->
+                                    R.string.session_continue_action
+                                else -> R.string.start_lesson
+                            })) { open(lesson) }
                         }
                     }
                 }
+                if (index < lessons.lastIndex) {
+                    val from = indent + 31.dp
+                    val to = (if (simplePath) 0.dp else if ((index + 1) % 2 == 0) 28.dp else 0.dp) + 31.dp
+                    Canvas(Modifier.fillMaxWidth().height(24.dp)) {
+                        val line = Path().apply {
+                            moveTo(from.toPx(), 0f)
+                            cubicTo(from.toPx(), 9.dp.toPx(), to.toPx(), 15.dp.toPx(),
+                                to.toPx(), 24.dp.toPx())
+                        }
+                        drawPath(line, color = Color(0xFFBAD8BE), style = Stroke(
+                            width = 9.dp.toPx(), cap = StrokeCap.Round))
+                    }
+                }
             }
-            if (unitIndex < pack.units.lastIndex) Surface(
-                modifier = Modifier.align(Alignment.CenterHorizontally).width(3.dp).height(14.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) {}
         }
+        Text(stringResource(R.string.concept_path_footer),
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.align(Alignment.CenterHorizontally))
     }
 }
 
@@ -446,37 +461,52 @@ fun DoneScreen(pack: ContentPack, lesson: PackLesson, completions: List<LessonCo
     onBookEventStarted: () -> Unit,
     openNext: () -> Unit, openProgress: () -> Unit, openPath: () -> Unit) {
     val done = pack.lessons.count { lessonIsComplete(it, completions) }
-    LessonScaffold(LessonStage.Complete, lesson.title, pack.developmentOnly,
-        onExit = openPath,
-        actionText = stringResource(if (next != null) R.string.start_next_lesson
-            else R.string.see_progress),
-        onAction = if (next != null) openNext else openProgress) {
-        Surface(color = MaterialTheme.colorScheme.primaryContainer,
-            shape = RoundedCornerShape(28.dp), modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                BookCompanion(BookMood.Complete, bookEventId, bookPlayEvent,
-                    reducedMotion, onBookEventStarted, size = 150.dp)
-                Text(stringResource(R.string.lesson_complete),
-                    style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Serif)
-                Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+    Column(Modifier.fillMaxSize()) {
+        TextButton(onClick = openPath,
+            modifier = Modifier.padding(horizontal = 20.dp).heightIn(min = 48.dp)) {
+            Text(stringResource(R.string.exit_to_path))
+        }
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            BookCompanion(BookMood.Complete, bookEventId, bookPlayEvent,
+                reducedMotion, onBookEventStarted, size = 188.dp)
+            Text(stringResource(R.string.lesson_complete),
+                style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() })
+            Text(lesson.title, style = MaterialTheme.typography.titleMedium)
+            Surface(color = MaterialTheme.colorScheme.primaryContainer,
+                shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(R.string.path_count, done, pack.lessons.size),
+                        style = MaterialTheme.typography.titleMedium)
+                    LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
+                        else done.toFloat() / pack.lessons.size },
+                        modifier = Modifier.fillMaxWidth().height(8.dp))
+                    Text(stringResource(R.string.concept_completion_saved),
+                        style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CompletionMetric(stringResource(R.string.daily_goal_title),
+                    stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open),
+                    Modifier.weight(1f))
+                CompletionMetric(stringResource(R.string.streak_title),
+                    stringResource(R.string.streak_current, streak.current), Modifier.weight(1f))
+            }
+            if (next != null) Text(stringResource(R.string.next_lesson_label, next.title),
+                style = MaterialTheme.typography.titleMedium)
+            TextButton(onClick = openProgress, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(stringResource(R.string.see_progress))
             }
         }
-        Text(stringResource(R.string.path_count, done, pack.lessons.size),
-            style = MaterialTheme.typography.titleMedium)
-        LinearProgressIndicator(progress = { if (pack.lessons.isEmpty()) 0f
-            else done.toFloat() / pack.lessons.size }, modifier = Modifier.fillMaxWidth().height(8.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CompletionMetric(stringResource(R.string.daily_goal_title),
-                stringResource(if (studiedToday) R.string.daily_goal_done else R.string.daily_goal_open),
-                Modifier.weight(1f))
-            CompletionMetric(stringResource(R.string.streak_title),
-                stringResource(R.string.streak_current, streak.current), Modifier.weight(1f))
-        }
-        if (next != null) Text(stringResource(R.string.next_lesson_label, next.title),
-            style = MaterialTheme.typography.titleMedium)
-        TextButton(onClick = openProgress, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.see_progress))
+        Surface(shadowElevation = 6.dp) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp)) {
+                Action(stringResource(if (next != null) R.string.start_next_lesson
+                    else R.string.see_progress),
+                    click = if (next != null) openNext else openProgress)
+            }
         }
     }
 }

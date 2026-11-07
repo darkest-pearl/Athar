@@ -1,11 +1,19 @@
-﻿package dev.elm.prototype
+package dev.elm.prototype
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 @Composable
 fun ReviewOverview(dueCount: Int, finished: Boolean, start: () -> Unit) {
@@ -27,42 +35,59 @@ fun ReviewQuestionScreen(pack: ContentPack, lesson: PackLesson, question: PackQu
     onSelect: (Int) -> Unit, onHint: () -> Unit, onReveal: () -> Unit,
     onSubmit: () -> Unit, onSource: () -> Unit, onNext: () -> Unit,
     onOpenLesson: () -> Unit) {
-    Title(stringResource(R.string.nav_review))
-    Note(stringResource(R.string.review_progress, index + 1, total))
-    Note(question.prompt)
-    question.choices.forEachIndexed { choiceIndex, choice ->
-        AnswerChoice(choice, selectedIndex == choiceIndex,
-            choiceIndex == question.correctIndex, feedback || revealed, busy) { onSelect(choiceIndex) }
-    }
-    if (!feedback) {
-        if (!hinted) TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.show_hint))
+    val independent = wasDue && selectedIndex == question.correctIndex && !hinted && !revealed
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.nav_review), style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
+            Text(stringResource(R.string.review_progress, index + 1, total),
+                style = MaterialTheme.typography.labelLarge)
+            LinearProgressIndicator(progress = { (index + 1f) / total.coerceAtLeast(1) },
+                modifier = Modifier.fillMaxWidth().height(8.dp))
         }
-        if (hinted) Panel { Note(question.hint.ifBlank { lesson.notes }) }
-        if (!revealed) TextButton(onClick = onReveal, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(stringResource(R.string.reveal_answer))
-        }
-        if (revealed) Note(stringResource(R.string.reveal_note))
-        Action(stringResource(R.string.submit_review), (selectedIndex >= 0 || revealed) && !busy, onSubmit)
-    } else {
-        Panel {
-            Text(stringResource(if (!wasDue) R.string.linked_recall
-                else if (selectedIndex == question.correctIndex && !hinted && !revealed)
-                    R.string.independent_recall else R.string.assisted_recall),
-                style = MaterialTheme.typography.titleLarge)
-            Note(question.explanation)
-        }
-        if (question.sourceRef is PackSourceRef.FixtureText)
-            AnswerSourcePanel(pack, lesson, question, onOpenLesson)
-        else {
-            TextButton(onClick = onSource, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text(stringResource(R.string.replay_review_source))
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(question.prompt, fontSize = 25.sp, lineHeight = 31.sp,
+                fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
+            question.choices.forEachIndexed { choiceIndex, choice ->
+                AnswerChoice(choice, selectedIndex == choiceIndex,
+                    choiceIndex == question.correctIndex, feedback || revealed, busy) {
+                    if (!feedback) onSelect(choiceIndex)
+                }
             }
-            if (sourceVisible) androidx.compose.runtime.key(question.conceptId) {
-                AnswerSourcePanel(pack, lesson, question, onOpenLesson)
+            if (!feedback) {
+                if (!hinted) TextButton(onClick = onHint, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.show_hint))
+                }
+                if (hinted) Panel { Note(question.hint.ifBlank { lesson.notes }) }
+                if (!revealed) TextButton(onClick = onReveal, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.reveal_answer))
+                }
+                if (revealed) Note(stringResource(R.string.reveal_note))
+            }
+            if (feedback && sourceVisible) AnswerSourcePanel(pack, lesson, question, onOpenLesson)
+        }
+        Surface(shadowElevation = 6.dp, color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                if (feedback) {
+                    Text(stringResource(if (!wasDue) R.string.linked_recall
+                        else if (independent) R.string.independent_recall else R.string.assisted_recall),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
+                    Text(question.explanation, style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = onSource, modifier = Modifier.heightIn(min = 40.dp)) {
+                        Text(stringResource(R.string.replay_review_source))
+                    }
+                }
+                Action(if (feedback) stringResource(if (index + 1 < total) R.string.review_next
+                    else R.string.review_finish) else stringResource(R.string.submit_review),
+                    enabled = if (feedback) !busy else (selectedIndex >= 0 || revealed) && !busy,
+                    click = if (feedback) onNext else onSubmit)
             }
         }
-        Action(stringResource(if (index + 1 < total) R.string.review_next else R.string.review_finish),
-            enabled = !busy, click = onNext)
     }
 }

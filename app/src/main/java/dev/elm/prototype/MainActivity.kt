@@ -307,18 +307,19 @@ fun AtharApp(db: LearningDatabase) {
             else -> "Learn"
         }
     }
-    ElmTheme(direction) {
+    CompositionLocalProvider(LocalAtharReducedMotion provides reducedMotion) { ElmTheme(direction) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.safeDrawingPadding()) {
                 val focusedStudy = page == "Lesson" || page == "Quiz" ||
-                    page == "Concept" || page == "Done"
+                    page == "Concept" || page == "Done" ||
+                    (page == "Review" && reviewBatch.isNotEmpty() && reviewIndex < reviewBatch.size)
                 val compactHeight = LocalConfiguration.current.screenHeightDp < 500
                 val largeText = androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.3f
                 if (!focusedStudy) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp,
                     vertical = 0.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(stringResource(R.string.brand_name), fontFamily = FontFamily.Serif,
+                    Text(stringResource(R.string.brand_name),
                         fontSize = if (compactHeight) 22.sp else 26.sp,
                         fontWeight = FontWeight.Bold)
                     TextButton(onClick = { page = "Settings" }) { Text(stringResource(R.string.nav_settings)) }
@@ -836,5 +837,5 @@ fun AtharApp(db: LearningDatabase) {
                 }
             }
         }
-    }
+    } }
 }
